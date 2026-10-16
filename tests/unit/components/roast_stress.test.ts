@@ -8,6 +8,7 @@ import { OcrPreviewModal } from '@/components/roast/OcrPreviewModal';
 import { ToneSelector } from '@/components/roast/ToneSelector';
 import { FileUploader } from '@/components/roast/FileUploader';
 import { RoastData } from '@/lib/schemas/roast';
+import { maskPii } from '@/lib/utils/pii-masker';
 
 describe('Adversarial Stress Testing: /roast User Journey & State Machine (Challenger 2)', () => {
   const mockValidCvText = `
@@ -461,7 +462,7 @@ describe('Adversarial Stress Testing: /roast User Journey & State Machine (Chall
           '/api/roast',
           expect.objectContaining({
             body: JSON.stringify({
-              cvText: mockValidCvText,
+              cvText: maskPii(mockValidCvText).sanitizedText,
               tone: 'constructive',
             }),
           })
@@ -497,7 +498,7 @@ describe('Adversarial Stress Testing: /roast User Journey & State Machine (Chall
           '/api/roast',
           expect.objectContaining({
             body: JSON.stringify({
-              cvText: mockValidCvText,
+              cvText: maskPii(mockValidCvText).sanitizedText,
               tone: 'spicy',
               targetRole: 'Senior Frontend Engineer',
             }),
@@ -560,7 +561,7 @@ describe('Adversarial Stress Testing: /roast User Journey & State Machine (Chall
           '/api/roast',
           expect.objectContaining({
             body: JSON.stringify({
-              cvText: mockValidCvText,
+              cvText: maskPii(mockValidCvText).sanitizedText,
               tone: 'constructive',
             }),
           })

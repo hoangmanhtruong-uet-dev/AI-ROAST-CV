@@ -412,7 +412,8 @@ describe('Adversarial & Security Stress Suite — Milestone 2 (Challenger 1)', (
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          cvText: 'Kinh nghiệm: 2 năm làm lập trình viên TypeScript và Next.js.',
+          cvText:
+            'Kinh nghiệm: 2 năm làm lập trình viên TypeScript và Next.js. Chuyên môn phát triển giao diện người dùng và tối ưu hiệu năng hệ thống.',
           tone: 'spicy',
         }),
       });

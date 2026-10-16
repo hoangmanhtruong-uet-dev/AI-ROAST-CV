@@ -17,9 +17,8 @@ import { ToneSelector } from '@/components/roast/ToneSelector';
 import { RoastReport } from '@/components/roast/RoastReport';
 import { RoastData } from '@/lib/schemas/roast';
 import { ExtractApiResponse } from '@/lib/schemas/extract';
-import { SharePreviewModal } from '@/components/share/SharePreviewModal';
-import { ShareCardPayload } from '@/lib/schemas/share';
 import { WIPE_DATA_EVENT_NAME } from '@/lib/storage/wipe-data';
+import { maskPii } from '@/lib/utils/pii-masker';
 
 type RoastStep = 'INPUT' | 'PREVIEW' | 'ROASTING' | 'RESULT' | 'ERROR';
 
@@ -45,7 +44,6 @@ export default function RoastPage() {
   const [reportData, setReportData] = useState<RoastData | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [currentHintIndex, setCurrentHintIndex] = useState<number>(0);
-  const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
 
   // Listen for data wipe event to reset page state across components
   useEffect(() => {
@@ -102,15 +100,19 @@ export default function RoastPage() {
   const handleTextSubmit = (pastedText: string) => {
     setFile(null);
     setRawExtractedText(pastedText);
-    setConfirmedCvText(pastedText);
+    const maskingResult = maskPii(pastedText);
+    const sanitized = maskingResult.sanitizedText;
+    setConfirmedCvText(sanitized);
     setErrorMessage(null);
-    executeRoast(pastedText, selectedTone);
+    executeRoast(sanitized, selectedTone);
   };
 
   // User confirms text in OCR Preview Screen
   const handleConfirmPreview = (editedText: string) => {
-    setConfirmedCvText(editedText);
-    executeRoast(editedText, selectedTone);
+    const maskingResult = maskPii(editedText);
+    const sanitized = maskingResult.sanitizedText;
+    setConfirmedCvText(sanitized);
+    executeRoast(sanitized, selectedTone);
   };
 
   // Execute Roast API call
@@ -118,12 +120,15 @@ export default function RoastPage() {
     setStep('ROASTING');
     setErrorMessage(null);
 
+    // Defense-in-depth: Ensure payload is sanitized before transmission
+    const payloadText = maskPii(cvText).sanitizedText;
+
     try {
       const res = await fetch('/api/roast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          cvText,
+          cvText: payloadText,
           tone,
           targetRole: targetRole.trim() || undefined,
         }),
@@ -194,7 +199,7 @@ export default function RoastPage() {
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20 mb-3">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Chế độ Đa Giọng Điệu (R2)</span>
+              <span>Chế độ Đa Giọng Điệu</span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-extrabold text-zinc-100 mb-3 tracking-tight">
               Roast CV — Nhận Xét Thẳng Thắn
@@ -328,32 +333,14 @@ export default function RoastPage() {
 
         {/* STEP 5: STRUCTURED RESULT PRESENTATION */}
         {step === 'RESULT' && reportData && (
-          <>
-            <RoastReport
-              data={reportData}
-              cvText={confirmedCvText}
-              targetRole={targetRole}
-              onReset={handleReset}
-              onChangeTone={handleChangeTone}
-              onEditCv={() => setStep('PREVIEW')}
-              onShareCard={() => setIsShareModalOpen(true)}
-            />
-
-            <SharePreviewModal
-              isOpen={isShareModalOpen}
-              onClose={() => setIsShareModalOpen(false)}
-              payload={{
-                type: 'roast',
-                title: `AI Roast CV (${reportData.tone === 'spicy' ? 'Cà khịa' : 'Chuyên gia'})`,
-                score: reportData.overallScore,
-                quoteOrHighlight: reportData.weaknesses?.[0]?.quote || reportData.summaryVerdict,
-                summary: reportData.summaryVerdict,
-                rawPiiText: confirmedCvText,
-                topStrengths: reportData.topStrengths,
-                disclaimer: reportData.disclaimer,
-              }}
-            />
-          </>
+          <RoastReport
+            data={reportData}
+            cvText={confirmedCvText}
+            targetRole={targetRole}
+            onReset={handleReset}
+            onChangeTone={handleChangeTone}
+            onEditCv={() => setStep('PREVIEW')}
+          />
         )}
 
         {/* ERROR STATE */}

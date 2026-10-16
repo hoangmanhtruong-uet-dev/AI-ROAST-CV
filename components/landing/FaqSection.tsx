@@ -31,7 +31,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     icon: ShieldCheck,
     question: 'AI Roast CV có thật sự không lưu CV và câu trả lời của tôi trên máy chủ?',
     answer:
-      'Chính xác 100%. Hệ thống được kiến trúc theo nguyên tắc Zero Retention tuyệt đối: Tệp CV hoặc văn bản bạn gửi chỉ được nạp tạm thời vào bộ nhớ RAM của server để chuyển tiếp tới Google Gemini Flash và giải phóng bộ nhớ (zero out) ngay sau khi trả kết quả (vòng đời tối đa 0.1s). Chúng tôi không có cơ sở dữ liệu lưu trữ hồ sơ, không lưu file trên ổ cứng và toàn bộ log máy chủ đã bị loại bỏ thông tin nhạy cảm qua bộ lọc [REDACTED_BY_ZERO_RETENTION].',
+      'Chính xác. Hệ thống tuân thủ cam kết quyền riêng tư trung thực theo nguyên tắc Zero-Database Retention: Tệp CV hoặc văn bản bạn tải lên chỉ tồn tại tạm thời trong bộ nhớ của tiến trình máy chủ để chuyển tiếp qua giao thức mã hóa HTTPS tới Google Gemini Flash và giải phóng ngay sau khi xử lý xong. Dữ liệu được xử lý theo chính sách bảo mật API thương mại của Google (không dùng để quảng cáo hay huấn luyện mô hình cơ sở). Chúng tôi không lưu trữ hồ sơ trong cơ sở dữ liệu, không ghi file trên ổ cứng và toàn bộ log máy chủ đều được lọc sạch thông tin nhạy cảm qua bộ lọc [REDACTED_BY_ZERO_RETENTION].',
   },
   {
     id: 'faq-modes',
@@ -47,7 +47,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     icon: Timer,
     question: 'Tính năng Phỏng vấn áp lực (Stress Interview) mô phỏng trải nghiệm thực tế ra sao?',
     answer:
-      'Bạn sẽ được chọn vị trí khởi đầu (IT / Software Engineer hoặc Marketing / Business, hoặc nhập trực tiếp Job Description công ty mục tiêu nếu có Gói Pro). AI sẽ đưa ra 3 câu hỏi tình huống hóc búa liên tiếp kèm đồng hồ đếm ngược (60s - 90s mỗi câu). Sau khi hoàn thành, hệ thống sẽ chấm điểm chi tiết theo Rubric 4 tiêu chí công khai: Cấu trúc câu trả lời (STAR), Tính cụ thể & dẫn chứng, Mức độ liên quan, và Nhận thức hệ quả & tư duy xử lý vấn đề.',
+      'Bạn sẽ được chọn vị trí khởi đầu (IT / Software Engineer hoặc Marketing / Business, hoặc nhập trực tiếp Job Description công ty mục tiêu nếu có Gói Pro). AI sẽ đưa ra 3 câu hỏi tình huống hóc búa liên tiếp kèm đồng hồ đếm ngược (60s - 90s mỗi câu). Sau khi hoàn thành, hệ thống sẽ chấm điểm chi tiết theo Rubric 5 tiêu chí công khai: Cấu trúc STAR / mạch lạc, Tính cụ thể & dẫn chứng cá nhân, Mức độ liên quan & đúng trọng tâm, Nhận thức hệ quả & tư duy xử lý vấn đề, và Độ phù hợp vai trò / JD mục tiêu (Job Match Fit).',
   },
   {
     id: 'faq-rewrite',

@@ -38,7 +38,7 @@ export function SecurityBentoGrid({ className }: SecurityBentoGridProps) {
     { time: '07:14:02', level: 'WARN', msg: "Key 'candidateAnswer' -> [REDACTED_BY_ZERO_RETENTION]" },
     { time: '07:14:02', level: 'API', msg: 'Google Gemini 2.5 Flash response: 200 OK' },
     { time: '07:14:02', level: 'PURGE', msg: 'RAM buffer zeroed. Disk writes: 0 bytes.' },
-    { time: '07:14:03', level: 'AUDIT', msg: 'ZERO_RETENTION_VERIFIED. Retention: 0ms.' },
+    { time: '07:14:03', level: 'AUDIT', msg: 'PAYLOAD_PROCESSED. Server storage: NONE' },
   ];
 
   const handleThanosSnap = () => {
@@ -129,7 +129,7 @@ export function SecurityBentoGrid({ className }: SecurityBentoGridProps) {
                     <Cpu className="w-6 h-6 text-emerald-400 animate-pulse" />
                   </div>
                   <span className="text-xs font-semibold text-emerald-300">RAM Server</span>
-                  <span className="text-[10px] text-emerald-400/80">In-Memory 0.1s TTL</span>
+                  <span className="text-[10px] text-emerald-400/80">Bộ nhớ đệm tạm thời (In-Memory Transit)</span>
                 </div>
 
                 {/* Flow Arrow 2 */}
@@ -155,28 +155,28 @@ export function SecurityBentoGrid({ className }: SecurityBentoGridProps) {
                   </div>
                 </div>
 
-                {/* Stage 4: Self Destruct */}
+                {/* Stage 4: Memory Freed */}
                 <div className="flex flex-col items-center">
                   <div className="w-12 h-12 rounded-xl bg-rose-950/40 border border-rose-500/50 flex items-center justify-center text-rose-400 mb-1.5 shadow-[0_0_15px_rgba(244,63,94,0.2)]">
                     <Trash2 className="w-6 h-6 text-rose-400" />
                   </div>
-                  <span className="text-xs font-semibold text-rose-300">Tự hủy</span>
-                  <span className="text-[10px] text-rose-400/80">Sau 0.1s</span>
+                  <span className="text-xs font-semibold text-rose-300">Giải phóng</span>
+                  <span className="text-[10px] text-rose-400/80">Sau khi phản hồi</span>
                 </div>
               </div>
 
               {/* Tagline requirement */}
               <div className="mt-4 pt-3 border-t border-zinc-800/80 text-center text-[11px] text-zinc-400">
-                🔒 Quy trình xử lý: <strong>CV ➔ RAM Server ➔ Gemini Flash ➔ Tự hủy sau 0.1s, không qua ổ cứng</strong>.
+                🔒 Quy trình xử lý: <strong>CV ➔ RAM Server ➔ Google Gemini API (Mã hóa HTTPS) ➔ Giải phóng bộ nhớ, không lưu Database</strong>.
               </div>
             </div>
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px] text-zinc-400">
-            <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">Ổ cứng: 0 KB</span>
+            <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">Lưu trữ Database: 0 KB</span>
             <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">Cơ sở dữ liệu: Không</span>
             <span className="px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-500/30">
-              RAM tự giải phóng sau 100ms
+              RAM tự giải phóng sau khi phản hồi
             </span>
           </div>
         </Card>

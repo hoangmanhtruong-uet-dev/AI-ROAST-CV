@@ -360,6 +360,17 @@ export default function Navbar({
                     </div>
                   )}
                 </div>
+
+                {/* Privacy Policy Link */}
+                <div className="pt-2 border-t border-zinc-800/80 text-center">
+                  <Link
+                    href="/privacy"
+                    onClick={() => setIsPopoverOpen(false)}
+                    className="text-[11px] text-zinc-400 hover:text-emerald-400 underline underline-offset-2 transition-colors"
+                  >
+                    Xem Chính sách Quyền riêng tư
+                  </Link>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

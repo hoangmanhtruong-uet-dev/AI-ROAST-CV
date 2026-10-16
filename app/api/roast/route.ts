@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { roastRequestSchema, RoastApiResponse } from '@/lib/schemas/roast';
 import { generateRoast } from '@/lib/gemini/roast';
 import { logger } from '@/lib/logger';
+import { checkRoastRateLimit, validateRoastPayload } from '@/lib/rate-limit/roast-limiter';
+import { maskPii } from '@/lib/utils/pii-masker';
 
 export async function POST(req: Request): Promise<NextResponse<RoastApiResponse>> {
   const startTime = Date.now();
@@ -24,17 +26,50 @@ export async function POST(req: Request): Promise<NextResponse<RoastApiResponse>
 
     const { cvText, tone, targetRole } = parseResult.data;
 
+    // Tier 1: Payload Guard (CV text minimum 120 chars, maximum 5,000 chars 1-page CV truncation)
+    const payloadCheck = validateRoastPayload(cvText);
+    if (!payloadCheck.valid) {
+      logger.warn('Roast API: Payload guard validation failed', { error: payloadCheck.error });
+      return NextResponse.json({ success: false, error: payloadCheck.error }, { status: 400 });
+    }
+
+    // Rate Limiting Enforcement (Burst 2 req/60s, Daily 5 req/24h)
+    const rateLimit = checkRoastRateLimit(req);
+    if (!rateLimit.allowed) {
+      logger.warn('Roast API: Rate limit exceeded', {
+        remaining: rateLimit.remaining,
+        resetAt: rateLimit.resetAt,
+      });
+
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            rateLimit.error ||
+            'Bạn đã sử dụng hết 5 lượt Roast CV miễn phí trong hôm nay. Hãy tối ưu CV thật kỹ rồi quay lại vào ngày mai nhé!',
+        },
+        {
+          status: 429,
+          headers: rateLimit.headers,
+        }
+      );
+    }
+
+    // Defense-in-depth: Ensure server-side PII sanitization before prompt generation
+    const textToSanitize = payloadCheck.sanitizedText || payloadCheck.truncatedText || cvText;
+    const sanitizedCvText = maskPii(textToSanitize).sanitizedText;
+
     // Zero-PII Server Logging: NEVER log raw cvText
     logger.info('Roast API: Starting roast generation', {
       tone,
-      cvLength: cvText.length,
+      cvLength: sanitizedCvText.length,
       hasTargetRole: Boolean(targetRole),
     });
 
     let roastData;
     try {
       roastData = await generateRoast({
-        cvText,
+        cvText: sanitizedCvText,
         tone,
         targetRole,
       });
@@ -56,10 +91,17 @@ export async function POST(req: Request): Promise<NextResponse<RoastApiResponse>
       durationMs: Date.now() - startTime,
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: roastData,
     });
+
+    // Attach rate limit headers / Set-Cookie to response
+    for (const [key, value] of Object.entries(rateLimit.headers)) {
+      response.headers.set(key, value);
+    }
+
+    return response;
   } catch (error) {
     logger.error('Roast API: Unexpected fatal error', error);
     return NextResponse.json(

@@ -156,7 +156,7 @@ export function DualPortalCards({
     'Tùy biến bộ câu hỏi bám sát Job Description (JD) của công ty mục tiêu.',
     '3 Câu hỏi tình huống hóc búa liên tiếp rèn luyện phản xạ ứng biến.',
     'Đồng hồ đếm ngược (60s - 90s) & mô phỏng áp lực phòng thi thực tế.',
-    'Chấm điểm theo Rubric 4 tiêu chí công khai kèm nhận xét sâu sắc.',
+    'Chấm điểm theo Rubric 5 tiêu chí công khai kèm nhận xét sâu sắc.',
   ];
 
   return (
@@ -352,7 +352,7 @@ export function DualPortalCards({
                 Phỏng Vấn Áp Lực (Stress Interview)
               </h3>
               <p className="text-sm text-zinc-300 mb-6 leading-relaxed">
-                Mô phỏng áp lực phòng thi thực tế với 3 câu hỏi tình huống hóc búa, đếm ngược thời gian và chấm điểm Rubric 4 tiêu chí.
+                Mô phỏng áp lực phòng thi thực tế với 3 câu hỏi tình huống hóc búa, đếm ngược thời gian và chấm điểm Rubric 5 tiêu chí.
               </p>
 
               {/* Interactive Mini-Demo: Countdown & Heartbeat Simulator */}

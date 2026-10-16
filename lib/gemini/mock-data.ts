@@ -31,8 +31,13 @@ export function getMockRoastData(tone: 'spicy' | 'constructive'): RoastData {
   if (tone === 'spicy') {
     return {
       overallScore: 58,
+      roastScore: 58,
+      survivalScore: 52,
+      funnyTitle: 'Chiến Thần Kỹ Năng Mềm',
       tone: 'spicy',
       summaryVerdict:
+        'CV của bạn như một bức thư tình gửi cho mọi nhà tuyển dụng: đầy ắp những lời hứa hẹn sáo rỗng nhưng thiếu sạch số liệu thực tế. Viết "ham học hỏi, chịu áp lực cao" trong năm 2026 thì chỉ đủ gây áp lực cho người đọc thôi!',
+      verdict:
         'CV của bạn như một bức thư tình gửi cho mọi nhà tuyển dụng: đầy ắp những lời hứa hẹn sáo rỗng nhưng thiếu sạch số liệu thực tế. Viết "ham học hỏi, chịu áp lực cao" trong năm 2026 thì chỉ đủ gây áp lực cho người đọc thôi!',
       topStrengths: [
         'Đã tiếp cận công nghệ thực tế (Next.js, TypeScript, Tailwind CSS) thay vì chỉ học lý thuyết trường lớp.',
@@ -45,6 +50,8 @@ export function getMockRoastData(tone: 'spicy' | 'constructive'): RoastData {
           severity: 'Cao',
           rejectionReason:
             'Nhà tuyển dụng đọc câu này hàng nghìn lần mỗi ngày. Nó không chứng minh được bạn giải quyết được bài toán gì cho doanh nghiệp.',
+          rejectReason:
+            'Nhà tuyển dụng đọc câu này hàng nghìn lần mỗi ngày. Nó không chứng minh được bạn giải quyết được bài toán gì cho doanh nghiệp.',
           fixGuideline:
             'Thay bằng: Sinh viên năm cuối CNTT định hướng [Frontend Developer], có kinh nghiệm xây dựng [X] ứng dụng web với [React / Next.js] và tối ưu hóa [tốc độ tải trang / SEO].',
         },
@@ -54,6 +61,8 @@ export function getMockRoastData(tone: 'spicy' | 'constructive'): RoastData {
           severity: 'Cao',
           rejectionReason:
             'Từ "đáng kể" là tín hiệu cảnh báo của việc nói quá mà không có dẫn chứng. Nhà tuyển dụng kỹ thuật cần dữ liệu định lượng.',
+          rejectReason:
+            'Từ "đáng kể" là tín hiệu cảnh báo của việc nói quá mà không có dẫn chứng. Nhà tuyển dụng kỹ thuật cần dữ liệu định lượng.',
           fixGuideline:
             'Thay bằng: Tối ưu kích thước bundle giảm [X%] và cải thiện chỉ số Core Web Vitals (LCP) xuống dưới [1.5s] cho [số lượng người dùng thử nghiệm] người dùng.',
         },
@@ -62,6 +71,8 @@ export function getMockRoastData(tone: 'spicy' | 'constructive'): RoastData {
           issue: 'Liệt kê kỹ năng hiển nhiên của thế kỷ 20 thay vì các kỹ năng kỹ thuật có giá trị.',
           severity: 'Trung bình',
           rejectionReason:
+            'Lập trình viên ghi "thành thạo tin học văn phòng" khiến hồ sơ bị hạ giá trị, trông giống nhân viên nhập liệu hơn kỹ sư phần mềm.',
+          rejectReason:
             'Lập trình viên ghi "thành thạo tin học văn phòng" khiến hồ sơ bị hạ giá trị, trông giống nhân viên nhập liệu hơn kỹ sư phần mềm.',
           fixGuideline:
             'Thay bằng việc làm rõ quy trình: Làm việc nhóm theo mô hình [Agile / Scrum], review mã nguồn qua [Git Pull Requests], và phối hợp qua [Jira / Slack].',
@@ -93,6 +104,41 @@ export function getMockRoastData(tone: 'spicy' | 'constructive'): RoastData {
           impact: 'Nên làm',
         },
       ],
+      interviewQuestions: [
+        {
+          questionId: 'cv-q1',
+          role: 'custom',
+          questionIndex: 1,
+          title: 'Bug thanh toán giỏ hàng sát giờ Release',
+          scenario:
+            'Trong CV bạn nêu kinh nghiệm tích hợp API giỏ hàng và thanh toán. Đúng 17h30 chiều thứ Sáu trước giờ release, khách hàng báo lỗi giỏ hàng trừ tiền 2 lần khi mạng chập chờn. Bạn điều tra nguyên nhân ở đâu và khắc phục thế nào?',
+          pressureContext:
+            'Product Owner và Giám đốc kỹ thuật đứng ngay sau lưng yêu cầu rollback toàn bộ hoặc fix nóng dứt điểm trong vòng 15 phút.',
+          timeLimitSeconds: 90,
+        },
+        {
+          questionId: 'cv-q2',
+          role: 'custom',
+          questionIndex: 2,
+          title: 'Xung đột kiến trúc State Management và áp lực Senior',
+          scenario:
+            'Bạn sử dụng Zustand trong ứng dụng Next.js, nhưng Senior Developer yêu cầu đập đi viết lại toàn bộ sang Redux Toolkit để đồng bộ với mã nguồn cũ của công ty. Bạn thuyết phục giữ lại hay đồng ý viết lại?',
+          pressureContext:
+            'Senior bóng gió chỉ trích bạn là fresher bảo thủ, thiếu tinh thần hợp tác trong buổi sprint planning trước toàn bộ nhóm.',
+          timeLimitSeconds: 75,
+        },
+        {
+          questionId: 'cv-q3',
+          role: 'custom',
+          questionIndex: 3,
+          title: 'Sự cố rò rỉ API Token và áp lực giấu nhẹm',
+          scenario:
+            'Bạn phát hiện một commit cũ công khai trên GitHub cá nhân có chứa khóa API dịch vụ thanh toán sandbox từng dùng cho đồ án nhóm. Đồng đội cùng làm đề nghị xóa lịch sử git âm thầm thay vì thu hồi key và báo cáo sự cố. Bạn hành động ra sao?',
+          pressureContext:
+            'Đồng đội là bạn thân cùng phòng trọ gây áp lực sẽ cạch mặt và rút khỏi đồ án tốt nghiệp nếu bạn báo cáo sự cố này.',
+          timeLimitSeconds: 60,
+        },
+      ],
       disclaimer:
         'Lưu ý: Kết quả phân tích do AI sinh ra dựa trên dữ liệu bạn cung cấp, chỉ mang tính chất tham khảo luyện tập và không đại diện cho quyết định tuyển dụng của bất kỳ doanh nghiệp nào.',
     };
@@ -100,8 +146,13 @@ export function getMockRoastData(tone: 'spicy' | 'constructive'): RoastData {
 
   return {
     overallScore: 68,
+    roastScore: 68,
+    survivalScore: 65,
+    funnyTitle: 'Hiệp Sĩ Fix Bug Gánh Team',
     tone: 'constructive',
     summaryVerdict:
+      'Hồ sơ của bạn có nền tảng công nghệ cập nhật và định hướng rõ ràng. Tuy nhiên, để tạo ấn tượng mạnh với Hiring Manager và vượt qua vòng sàng lọc sơ tuyển, bạn cần định lượng hóa thành tích và cấu trúc lại các dự án theo chuẩn chuyên nghiệp.',
+    verdict:
       'Hồ sơ của bạn có nền tảng công nghệ cập nhật và định hướng rõ ràng. Tuy nhiên, để tạo ấn tượng mạnh với Hiring Manager và vượt qua vòng sàng lọc sơ tuyển, bạn cần định lượng hóa thành tích và cấu trúc lại các dự án theo chuẩn chuyên nghiệp.',
     topStrengths: [
       'Nền tảng học vấn vững vàng tại trường đào tạo kỹ thuật uy tín.',
@@ -115,6 +166,8 @@ export function getMockRoastData(tone: 'spicy' | 'constructive'): RoastData {
         severity: 'Trung bình',
         rejectionReason:
           'Nhà tuyển dụng tìm kiếm ứng viên hiểu rõ vị trí và sẵn sàng đóng góp vào mục tiêu kinh doanh hoặc sản phẩm.',
+        rejectReason:
+          'Nhà tuyển dụng tìm kiếm ứng viên hiểu rõ vị trí và sẵn sàng đóng góp vào mục tiêu kinh doanh hoặc sản phẩm.',
         fixGuideline:
           'Thay bằng: Kỹ sư Frontend fresher hướng tới việc áp dụng thế mạnh về [TypeScript & Next.js] để cùng team phát triển [tính năng sản phẩm], hướng tới mục tiêu [kết quả đầu ra cụ thể].',
       },
@@ -124,6 +177,8 @@ export function getMockRoastData(tone: 'spicy' | 'constructive'): RoastData {
         severity: 'Cao',
         rejectionReason:
           'Chưa thấy được năng lực giải quyết vấn đề và độ phức tạp kỹ thuật của dự án.',
+        rejectReason:
+          'Chưa thấy được năng lực giải quyết vấn đề và độ phức tạp kỹ thuật của dự án.',
         fixGuideline:
           'Thay bằng: Tích hợp cổng thanh toán [tên cổng thanh toán] với cơ chế xử lý lỗi [tên giải pháp], xử lý trung bình [X giao dịch/phút] trong môi trường sandbox.',
       },
@@ -132,6 +187,8 @@ export function getMockRoastData(tone: 'spicy' | 'constructive'): RoastData {
         issue: 'Nhận xét chủ quan thiếu thang đo chuẩn hóa.',
         severity: 'Thấp',
         rejectionReason:
+          'Cần minh chứng cụ thể bằng điểm số đồ án hoặc xếp hạng trong lớp học.',
+        rejectReason:
           'Cần minh chứng cụ thể bằng điểm số đồ án hoặc xếp hạng trong lớp học.',
         fixGuideline:
           'Thay bằng: Đạt điểm [A / GPA X/4.0] đồ án chuyên ngành, xếp hạng trong top [X%] của khóa.',
@@ -161,6 +218,41 @@ export function getMockRoastData(tone: 'spicy' | 'constructive'): RoastData {
         recommendation:
           'Dung lượng 1 trang chuẩn chỉnh, rất phù hợp cho hồ sơ sinh viên mới tốt nghiệp.',
         impact: 'Nên làm',
+      },
+    ],
+    interviewQuestions: [
+      {
+        questionId: 'cv-q1',
+        role: 'custom',
+        questionIndex: 1,
+        title: 'Tối ưu API thanh toán và xử lý timeout mạng',
+        scenario:
+          'Khi tích hợp cổng thanh toán trong đồ án, nếu webhook phản hồi trễ quá 10 giây hoặc mạng chập chờn, bạn thiết kế cơ chế retry và reconciliation như thế nào để đảm bảo không thất thoát tiền của khách?',
+        pressureContext:
+          'Hiring Manager yêu cầu bạn giải thích chi tiết luồng xử lý idempotent ngay trên bảng trắng trong 90 giây.',
+        timeLimitSeconds: 90,
+      },
+      {
+        questionId: 'cv-q2',
+        role: 'custom',
+        questionIndex: 2,
+        title: 'Bảo vệ quyết định kiến trúc trước đội ngũ Tech Lead',
+        scenario:
+          'Trong đồ án môn học, bạn chọn Next.js và Zustand. Nếu khách hàng yêu cầu chuyển đổi hệ thống sang micro-frontend do nhiều team độc lập cùng đóng góp, bạn đánh giá rủi ro và phương án khả thi ra sao?',
+        pressureContext:
+          'Ban giám khảo phỏng vấn liên tục đặt câu hỏi nghi vấn tính khả thi của giải pháp trong 75 giây.',
+        timeLimitSeconds: 75,
+      },
+      {
+        questionId: 'cv-q3',
+        role: 'custom',
+        questionIndex: 3,
+        title: 'Xử lý vi phạm an toàn thông tin đồ án',
+        scenario:
+          'Giả sử bạn vô tình phát hiện cơ sở dữ liệu đồ án của nhóm bị rò rỉ công khai do cấu hình sai quyền truy cập MongoDB. Bạn sẽ báo cáo giảng viên hướng dẫn và các thành viên ra sao mà không gây hoảng loạn?',
+        pressureContext:
+          'Chỉ còn 60 giây để đưa ra quyết định ngăn chặn rò rỉ dữ liệu trước khi sự cố lan rộng.',
+        timeLimitSeconds: 60,
       },
     ],
     disclaimer:

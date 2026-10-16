@@ -32,7 +32,7 @@ export const HALL_OF_SHAME_ITEMS: ShameItem[] = [
     category: 'Ảo tưởng thời gian',
     role: 'Fresher AI & Data',
     quote: 'Kinh nghiệm 10 năm sử dụng và prompt ChatGPT chuyên nghiệp.',
-    penaltyChip: 'Ảo tưởng thời gian',
+    penaltyChip: '-30đ timeline',
     penaltyScore: '-70 uy tín',
     roastComment: 'ChatGPT mới ra mắt cuối năm 2022, bạn prompt bằng cỗ máy thời gian của Doraemon từ thời tiểu học à?',
   },

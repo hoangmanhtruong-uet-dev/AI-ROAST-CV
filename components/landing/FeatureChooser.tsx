@@ -18,7 +18,7 @@ export default function FeatureChooser() {
     '3 Câu hỏi tình huống liên tiếp rèn luyện phản xạ ứng biến.',
     'Đồng hồ đếm ngược (timer 60s - 90s) cho mỗi câu hỏi áp lực.',
     'Nút "Bỏ qua" hoặc "Dừng phỏng vấn" an toàn bất cứ lúc nào.',
-    'Chấm điểm Rubric 4 tiêu chí công khai kèm nhận xét chi tiết và điểm mạnh.',
+    'Chấm điểm Rubric 5 tiêu chí công khai kèm nhận xét chi tiết và điểm mạnh.',
   ];
 
   return (

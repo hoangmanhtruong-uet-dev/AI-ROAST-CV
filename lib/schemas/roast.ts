@@ -14,6 +14,8 @@ export type RoastRequest = z.infer<typeof roastRequestSchema>;
 export const roastApiRequestSchema = roastRequestSchema;
 export type RoastApiRequest = RoastRequest;
 
+import { interviewQuestionDataSchema, InterviewQuestionData } from '@/lib/schemas/interview';
+
 export const weaknessItemSchema = z.object({
   quote: z.string().min(1, 'Trích đoạn không được để trống'),
   issue: z.string().min(1, 'Vấn đề phát hiện không được để trống'),
@@ -21,6 +23,7 @@ export const weaknessItemSchema = z.object({
     errorMap: () => ({ message: 'Mức độ nghiêm trọng phải là "Cao", "Trung bình" hoặc "Thấp"' }),
   }),
   rejectionReason: z.string().min(1, 'Lý do từ chối không được để trống'),
+  rejectReason: z.string().min(1, 'Lý do từ chối không được để trống').optional(),
   fixGuideline: z
     .string()
     .min(1, 'Hướng dẫn sửa không được để trống')
@@ -48,11 +51,26 @@ export const roastResultDataSchema = z.object({
     .int('Điểm số phải là số nguyên')
     .min(0, 'Điểm số nhỏ nhất là 0')
     .max(100, 'Điểm số lớn nhất là 100'),
+  roastScore: z
+    .number({ invalid_type_error: 'Điểm số phải là số nguyên' })
+    .int('Điểm số phải là số nguyên')
+    .min(0, 'Điểm số nhỏ nhất là 0')
+    .max(100, 'Điểm số lớn nhất là 100')
+    .optional(),
+  survivalScore: z
+    .number({ invalid_type_error: 'Điểm sinh tồn phải là số nguyên' })
+    .int('Điểm sinh tồn phải là số nguyên')
+    .min(0, 'Điểm sinh tồn nhỏ nhất là 0')
+    .max(100, 'Điểm sinh tồn lớn nhất là 100')
+    .optional(),
+  funnyTitle: z.string().optional(),
   tone: z.enum(['spicy', 'constructive']),
   summaryVerdict: z.string().min(1, 'Phán quyết tổng thể không được để trống'),
+  verdict: z.string().min(1, 'Phán quyết không được để trống').optional(),
   topStrengths: z.array(z.string().min(1)).min(1, 'Cần ít nhất 1 điểm mạnh'),
   weaknesses: z.array(weaknessItemSchema).min(1, 'Cần ít nhất 1 điểm yếu'),
   atsRecommendations: z.array(atsRecommendationSchema).min(1, 'Cần ít nhất 1 khuyến nghị ATS'),
+  interviewQuestions: z.array(interviewQuestionDataSchema).optional(),
   disclaimer: z.string().min(1, 'Cần có tuyên bố miễn trừ trách nhiệm'),
 });
 export type RoastResultData = z.infer<typeof roastResultDataSchema>;

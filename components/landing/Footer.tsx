@@ -65,9 +65,9 @@ export default function Footer({ onOpenFakeDoor }: FooterProps) {
             </h4>
             <ul className="space-y-2 text-xs sm:text-sm">
               <li>
-                <a href="#privacy-commitment" className="hover:text-white transition-colors">
+                <Link href="/privacy" className="hover:text-white transition-colors">
                   Cam kết bảo mật dữ liệu
-                </a>
+                </Link>
               </li>
               <li>
                 <WipeDataButton
@@ -77,7 +77,7 @@ export default function Footer({ onOpenFakeDoor }: FooterProps) {
                 />
               </li>
               <li>
-                <span className="text-zinc-500">Tiêu chuẩn Rubric 4 tiêu chí</span>
+                <span className="text-zinc-500">Tiêu chuẩn Rubric 5 tiêu chí</span>
               </li>
               <li>
                 <span className="text-zinc-500">Hỗ trợ: support@airoastcv.vn</span>
@@ -94,7 +94,7 @@ export default function Footer({ onOpenFakeDoor }: FooterProps) {
           </p>
           <p>
             <strong className="text-zinc-300">Chính sách dữ liệu: </strong>
-            Hệ thống hoạt động theo nguyên tắc Zero Retention. Chúng tôi không lưu trữ nội dung CV hay câu trả lời trên máy chủ, không chia sẻ cho bên thứ ba và không sử dụng dữ liệu của bạn để huấn luyện mô hình khi chưa được đồng ý riêng.
+            Hệ thống hoạt động theo nguyên tắc Zero-Database Retention. Chúng tôi không lưu trữ nội dung CV hay câu trả lời trong cơ sở dữ liệu. Dữ liệu được gửi trực tiếp tới Google Gemini qua giao thức mã hóa HTTPS để phân tích theo chính sách bảo mật API thương mại của Google, không sử dụng cho mục đích quảng cáo hay huấn luyện mô hình cơ sở.
           </p>
         </div>
 
@@ -102,7 +102,9 @@ export default function Footer({ onOpenFakeDoor }: FooterProps) {
         <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-zinc-500 border-t border-zinc-900 pt-6 gap-3">
           <p>© 2026 AI Roast CV. Mọi quyền được bảo lưu.</p>
           <p className="flex items-center gap-1">
-            Phát triển với <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" /> vì thế hệ trẻ Việt Nam
+            Phát triển với{' '}
+            <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 inline" aria-hidden="true" />
+            <span className="sr-only">❤️</span> vì thế hệ trẻ Việt Nam
           </p>
         </div>
       </div>

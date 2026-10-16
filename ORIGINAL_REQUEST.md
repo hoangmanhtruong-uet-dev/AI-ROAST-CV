@@ -161,3 +161,55 @@ Integrity mode: development
 - [ ] `npm run type-check` (`tsc --noEmit`) đạt **0 diagnostic errors**.
 - [ ] `npm run build` biên dịch sạch sẽ không có lỗi Next.js 15 hay ESLint error.
 - [ ] Duy trì nguyên tắc Zero-PII Server Logging trên mọi API route mới (`/api/roast/teaser`).
+
+## Follow-up — 2026-10-16T11:49:32Z
+
+Triển khai toàn diện kế hoạch Plan_v2 (Fix & Feature) cho AI Roast CV: Tái cấu trúc quyền riêng tư trung thực, trang /privacy, bộ lọc PII client-side với chip preview, System Prompt 1-request đa năng chống hallucination số liệu, phòng phỏng vấn áp lực State Machine 5 bước (/interview), và Modal xuất thẻ chia sẻ viral html-to-image (/roast).
+
+Working directory: d:\MyProjects\MyProjectToMoney\AI ROAST CV
+Integrity mode: development
+
+## Requirements
+
+### R1. P0: Quyền Riêng Tư Trung Thực, Trang /privacy & Client-Side PII Masker
+- Viết lại cam kết quyền riêng tư trung thực: Nói rõ dữ liệu CV được gửi tới Google Gemini theo chính sách API của Google, không tuyên bố "RAM tự hủy sau 0.1s" hay "100% Client Verified" gây rủi ro pháp lý. Tạo trang `/privacy` đầy đủ chính sách.
+- Xây dựng `lib/utils/pii-masker.ts` lọc SĐT Việt Nam (+84, 03x-09x), Email, CCCD 12 số, URL cá nhân trước khi gửi payload lên server; hiển thị chip preview `ngu***@gmail.com`, `098****123` trên UI nộp CV kèm checkbox xác nhận đồng ý.
+- Cơ chế Rate Limit tự chủ (Self-contained): Dùng Server-side Salted Token Bucket + Encrypted Cookie + Input length limit (không phụ thuộc Redis bên ngoài).
+
+### R2. P1: System Prompt 1-Request Đa Năng & Chống Bịa Số Liệu
+- Nâng cấp System Prompt và Gemini Response Schema: Sinh trọn gói Kết quả Roast + 3-5 thẻ mổ xẻ lỗi + 3 câu hỏi phỏng vấn áp lực tùy biến theo CV trong 1 lượt gọi duy nhất.
+- Chống hallucination số liệu: Khi viết lại câu chuẩn ATS, bắt buộc dùng placeholder dạng `[X]%`, `[A]ms → [B]ms`, tuyệt đối không tự bịa con số giả.
+- Phân cách input người dùng bằng delimiter `<<<USER_CV>>>` để triệt tiêu tấn công Prompt Injection ("Ignore previous instructions...").
+
+### R3. P1.4 & P2.1: Phòng Phỏng Vấn Áp Lực Tuần Tự (PressureInterviewRoom)
+- Tái cấu trúc `/interview` thành máy trạng thái 5 giai đoạn: Lobby -> Đọc đề (5s) -> Trả lời có đồng hồ 90s (viền đỏ nhấp nháy khi < 20s) -> Chấm điểm -> Tổng kết STAR.
+- Bắt sự kiện `onPaste` chặn copy từ ChatGPT kèm lời cảnh cáo hài hước từ HR.
+- Tự động thu bài khi hết giờ (giữ nguyên câu đang gõ dở); chấm điểm STAR và cung cấp câu trả lời mẫu 10/10.
+- Kết nối thông suốt `/roast` -> `/interview`: Nút "Luyện phỏng vấn từ chính CV này" truyền 3 câu hỏi cá nhân hóa qua `sessionStorage`.
+
+### R4. P2.2: Viral Roast Share Modal (html-to-image)
+- Cài đặt `html-to-image` và xây dựng `RoastShareModal.tsx` tại `/roast`: Cho phép xuất ảnh 1:1 (Threads/FB) và 9:16 (Story/TikTok) trực tiếp tại trình duyệt.
+- Tự động bật chế độ ẩn danh (biệt danh vui: *"Fresher Hệ Tâm Linh"*, *"Chiến Thần Rải CV"*); khử khuẩn PII trong câu trích dẫn trước khi vẽ lên ảnh.
+- Nút 1-click Copy ảnh vào Clipboard (desktop) và `navigator.share` (mobile) kèm nút Tải ảnh PNG.
+
+### R5. P0.5/P0.6 & Verification: Sửa Lỗi Copy, Đồng Nhất Rubric & 100% Test Pass
+- Rà soát sửa lỗi chính tả/khoảng trắng trên toàn bộ trang; đồng nhất 5 tiêu chí Rubric trên mọi màn hình.
+- Viết test suites đầy đủ cho PII Masker, Gemini Schema, Interview State Machine, Share Modal; duy trì 100% test pass (`vitest`), 0 lỗi type-check, clean Next.js 15 build.
+
+## Acceptance Criteria
+
+### Security & Privacy
+- [ ] Payload text gửi lên `/api/roast` không chứa SĐT, Email hay CCCD nguyên bản.
+- [ ] Có trang `/privacy` và checkbox thỏa thuận dữ liệu trước khi tải CV lên.
+- [ ] Ảnh xuất từ `RoastShareModal` và canvas không chứa thông tin cá nhân thật khi bật ẩn danh.
+
+### Functional Integrity
+- [ ] 1 lượt gọi API `/api/roast` trả về đủ cả kết quả roast và 3 câu hỏi phỏng vấn chuẩn bị sẵn.
+- [ ] `/interview` vận hành mượt mà theo đúng 5 bước trạng thái, chặn paste từ ChatGPT và auto-submit khi hết 90s.
+- [ ] Nút "Luyện phỏng vấn từ chính CV này" chuyển hướng mượt và nạp đúng 3 câu hỏi từ `sessionStorage`.
+- [ ] Modal xuất ảnh hoạt động tốt trên desktop (Copy Clipboard) và mobile (Share API/Download).
+
+### Quality & Regression
+- [ ] 100% test pass trong test suite hiện tại và mới bổ sung (vitest).
+- [ ] `npm run type-check` đạt 0 lỗi diagnostic.
+- [ ] `npm run build` biên dịch thành công 100% không lỗi Next.js 15.

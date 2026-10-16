@@ -14,9 +14,10 @@ import {
   SessionSummaryEvaluation,
 } from '@/components/interview/ReportCard';
 import { QuitConfirmModal } from '@/components/interview/QuitConfirmModal';
+import { PressureInterviewRoom } from '@/components/interview/PressureInterviewRoom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sparkles, AlertCircle, RotateCcw } from 'lucide-react';
+import { Sparkles, AlertCircle, RotateCcw, Flame } from 'lucide-react';
 import { SharePreviewModal } from '@/components/share/SharePreviewModal';
 import { ShareCardPayload } from '@/lib/schemas/share';
 import { WIPE_DATA_EVENT_NAME } from '@/lib/storage/wipe-data';
@@ -63,11 +64,37 @@ export default function InterviewPage() {
   const [isShareModalOpen, setIsShareModalOpen] = React.useState<boolean>(false);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = React.useState<boolean>(false);
 
+  // Continuous Pressure Interview Room (Plan v2 - R3)
+  const [isPressureMode, setIsPressureMode] = React.useState<boolean>(false);
+  const [hasCvQuestions, setHasCvQuestions] = React.useState<boolean>(false);
+
   const { isPro } = useProTier();
+
+  // Check sessionStorage on mount for CV-tailored questions (CV Bridge)
+  React.useEffect(() => {
+    try {
+      const stored =
+        sessionStorage.getItem('airoastcv_custom_interview_questions') ||
+        sessionStorage.getItem('ai_roast_cv_context');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (
+          (Array.isArray(parsed) && parsed.length > 0) ||
+          (parsed && Array.isArray(parsed.customQuestions) && parsed.customQuestions.length > 0)
+        ) {
+          setHasCvQuestions(true);
+        }
+      }
+    } catch {
+      // Safe JSON parse fallback
+    }
+  }, []);
 
   // Listen for data wipe event to reset interview state across components
   React.useEffect(() => {
     const handleDataWiped = () => {
+      setHasCvQuestions(false);
+      setIsPressureMode(false);
       handleRestart();
     };
     window.addEventListener(WIPE_DATA_EVENT_NAME, handleDataWiped);
@@ -371,6 +398,7 @@ export default function InterviewPage() {
 
   // Reset entire session
   const handleRestart = () => {
+    setIsPressureMode(false);
     setStep('ROLE_CHOOSER');
     setRole(null);
     setCustomJdText(null);
@@ -391,9 +419,54 @@ export default function InterviewPage() {
     handleRestart();
   };
 
+  if (isPressureMode) {
+    return (
+      <main className="min-h-screen bg-[#0a0f1d] text-zinc-100 flex flex-col justify-between">
+        <div className="flex-1 py-8">
+          <PressureInterviewRoom onExit={() => setIsPressureMode(false)} />
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-[#0a0f1d] text-zinc-100 flex flex-col justify-between">
       <div className="flex-1 py-8">
+        {/* Banner nạp câu hỏi từ CV (CV Bridge) */}
+        {step === 'ROLE_CHOOSER' && hasCvQuestions && (
+          <div role="status" className="max-w-4xl mx-auto mb-6 px-4">
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-900/30 via-indigo-900/20 to-purple-900/30 border border-purple-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-purple-200 shadow-lg">
+              <div className="flex items-center gap-2.5">
+                <Sparkles className="w-5 h-5 text-purple-400 shrink-0" />
+                <span>
+                  <strong>Đã nạp 3 câu hỏi áp lực từ CV của bạn!</strong> Các câu hỏi xoáy trực tiếp vào những chi tiết vừa bị soi trong CV.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPressureMode(true)}
+                className="shrink-0 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow transition cursor-pointer"
+              >
+                ⚡ Bước vào phòng phỏng vấn ngay
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Chuyển đổi sang Phòng Phỏng Vấn Áp Lực Liên Hoàn */}
+        {step === 'ROLE_CHOOSER' && (
+          <div className="max-w-4xl mx-auto px-4 mb-4 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setIsPressureMode(true)}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 text-orange-400 border border-orange-500/30 transition shadow cursor-pointer"
+            >
+              <Flame className="w-3.5 h-3.5 text-orange-400" />
+              <span>Phòng phỏng vấn áp lực liên hoàn (5 giai đoạn)</span>
+            </button>
+          </div>
+        )}
+
         {/* Step 1: Role Chooser */}
         {step === 'ROLE_CHOOSER' && (
           <RoleChooser

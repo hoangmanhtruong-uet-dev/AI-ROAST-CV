@@ -225,7 +225,7 @@ export default function CssHologramFallback({
         {/* Hologram Bottom Watermark */}
         <div className="relative z-10 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-[10px] font-mono text-zinc-500">
           <span>AI ROAST ENGINE 2.0</span>
-          <span>100% CLIENT VERIFIED</span>
+          <span>CLIENT PII SHIELD PROTECTED</span>
         </div>
 
         {/* Ambient CSS Ember Particles */}

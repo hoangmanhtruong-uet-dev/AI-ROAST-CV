@@ -10,6 +10,9 @@ export interface LeadRecord {
   createdAt: number;
 }
 
+export const CV_TAILORED_INTERVIEW_KEY = 'airoastcv_custom_interview_questions';
+export const AI_ROAST_CV_CONTEXT_KEY = 'ai_roast_cv_context';
+
 export const leadStore: LeadRecord[] = [];
 export const leadsBuffer = leadStore;
 const MAX_LEADS_CAPACITY = 1000;

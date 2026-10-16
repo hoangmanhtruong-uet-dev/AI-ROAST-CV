@@ -53,14 +53,14 @@ describe('Dynamic Security Bento Grid Component (Milestone 3)', () => {
       expect(screen.getByText('CV Upload')).toBeInTheDocument();
       expect(screen.getByText('RAM Server')).toBeInTheDocument();
       expect(screen.getByText('Gemini Flash')).toBeInTheDocument();
-      expect(screen.getByText('Tự hủy')).toBeInTheDocument();
+      expect(screen.getByText('Giải phóng')).toBeInTheDocument();
 
       expect(
-        screen.getByText(/CV ➔ RAM Server ➔ Gemini Flash ➔ Tự hủy sau 0\.1s, không qua ổ cứng/i)
+        screen.getByText(/CV ➔ RAM Server ➔ Google Gemini API \(Mã hóa HTTPS\) ➔ Giải phóng bộ nhớ, không lưu Database/i)
       ).toBeInTheDocument();
 
-      expect(screen.getByText(/ổ cứng: 0 kb/i)).toBeInTheDocument();
-      expect(screen.getByText(/ram tự giải phóng sau 100ms/i)).toBeInTheDocument();
+      expect(screen.getByText(/lưu trữ database: 0 kb/i)).toBeInTheDocument();
+      expect(screen.getByText(/ram tự giải phóng sau khi phản hồi/i)).toBeInTheDocument();
     });
   });
 

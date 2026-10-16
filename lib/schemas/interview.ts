@@ -22,8 +22,8 @@ export type InterviewQuestionRequest = z.infer<typeof interviewQuestionRequestSc
 
 export const interviewQuestionDataSchema = z.object({
   questionId: z.string().min(1, 'questionId không được để trống'),
-  role: interviewRoleSchema,
-  questionIndex: questionIndexSchema,
+  role: interviewRoleSchema.default('custom'),
+  questionIndex: questionIndexSchema.default(1),
   title: z.string().min(1, 'title không được để trống'),
   scenario: z.string().min(1, 'scenario không được để trống'),
   pressureContext: z.string().min(1, 'pressureContext không được để trống'),

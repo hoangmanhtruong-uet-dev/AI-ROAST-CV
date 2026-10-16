@@ -207,4 +207,11 @@ describe('Roast CV Interactive Flow (/roast)', () => {
     // Client-side error message must be shown
     expect(await screen.findByText(/dung lượng tệp vượt quá 5mb/i)).toBeInTheDocument();
   });
+
+  it('Renders clean Chế độ Đa Giọng Điệu badge without internal technical label (R2)', () => {
+    render(React.createElement(RoastPage));
+
+    expect(screen.getByText('Chế độ Đa Giọng Điệu')).toBeInTheDocument();
+    expect(screen.queryByText(/Chế độ Đa Giọng Điệu \(R2\)/i)).toBeNull();
+  });
 });

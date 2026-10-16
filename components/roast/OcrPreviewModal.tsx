@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { RotateCcw, Check, Copy, ArrowRight, ArrowLeft, FileText, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { RotateCcw, Check, Copy, ArrowRight, ArrowLeft, FileText, Sparkles, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { maskPii } from '@/lib/utils/pii-masker';
 
 export interface OcrPreviewModalProps {
   isOpen: boolean;
@@ -31,12 +33,15 @@ export function OcrPreviewModal({
   const [copied, setCopied] = useState(false);
   const [resetNotice, setResetNotice] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [consentAgreed, setConsentAgreed] = useState<boolean>(true);
 
   useEffect(() => {
     setCurrentText(extractedText);
   }, [extractedText]);
 
   if (!isOpen) return null;
+
+  const maskingResult = maskPii(currentText);
 
   const wordCount = currentText
     .trim()
@@ -64,12 +69,16 @@ export function OcrPreviewModal({
 
   const handleConfirm = () => {
     const trimmed = currentText.trim();
+    if (!consentAgreed) {
+      setValidationError('Bạn cần đồng ý với chính sách quyền riêng tư trước khi tiếp tục.');
+      return;
+    }
     if (trimmed.length < 30) {
       setValidationError('Văn bản CV quá ngắn (tối thiểu 30 ký tự). Vui lòng bổ sung thông tin.');
       return;
     }
     setValidationError(null);
-    onConfirm(trimmed);
+    onConfirm(maskingResult.sanitizedText);
   };
 
   return (
@@ -172,6 +181,90 @@ export function OcrPreviewModal({
         <p className="text-xs text-rose-400 font-medium">{validationError}</p>
       )}
 
+      {/* Khiên bảo mật PII Client & Chip Previews */}
+      <div className="p-4 rounded-xl bg-zinc-900/90 border border-emerald-500/30 space-y-3 shadow-inner">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-zinc-100 flex items-center gap-1.5">
+                <span>Khiên bảo mật PII Client</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-500/40">
+                  Tự động che mờ thông tin cá nhân
+                </span>
+              </h4>
+              <p className="text-[11px] text-zinc-400">
+                Lọc SĐT, Email, CCCD trước khi payload được chuyển tiếp tới Google Gemini.
+              </p>
+            </div>
+          </div>
+          {maskingResult.stats.total > 0 && (
+            <span className="self-start sm:self-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-900/40 border border-emerald-500/30 text-emerald-300">
+              {maskingResult.stats.total} mục đã ẩn danh
+            </span>
+          )}
+        </div>
+
+        {/* Chip Previews */}
+        {maskingResult.detectedItems.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            {maskingResult.detectedItems.map((item, idx) => (
+              <span
+                key={`${item.type}-${item.preview}-${idx}`}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono bg-zinc-800/90 border border-emerald-500/40 text-emerald-300 shadow-sm"
+              >
+                <span>
+                  {item.type === 'phone'
+                    ? '📱'
+                    : item.type === 'email'
+                    ? '✉️'
+                    : item.type === 'id'
+                    ? '🪪'
+                    : '🔗'}
+                </span>
+                <span className="font-semibold">{item.preview}</span>
+                {item.count > 1 && (
+                  <span className="text-[10px] px-1 rounded bg-zinc-700 text-zinc-300">
+                    x{item.count}
+                  </span>
+                )}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-zinc-400 italic pt-1 flex items-center gap-1.5">
+            <span className="text-emerald-400">✓</span>
+            <span>Không phát hiện SĐT, Email hay CCCD cá nhân trong văn bản này.</span>
+          </p>
+        )}
+
+        {/* Mandatory Consent Checkbox */}
+        <div className="pt-2 border-t border-zinc-800/80">
+          <label className="flex items-start gap-2.5 cursor-pointer text-xs text-zinc-300 select-none">
+            <input
+              type="checkbox"
+              id="consent-checkbox"
+              aria-label="Tôi đồng ý gửi nội dung CV đã ẩn danh tới Google Gemini để phân tích theo Chính sách Quyền riêng tư"
+              checked={consentAgreed}
+              onChange={(e) => {
+                setConsentAgreed(e.target.checked);
+                if (e.target.checked) setValidationError(null);
+              }}
+              className="mt-0.5 w-4 h-4 rounded border-zinc-700 bg-zinc-800 text-orange-500 focus:ring-orange-500 focus:ring-offset-zinc-900 cursor-pointer"
+            />
+            <span className="leading-snug">
+              Tôi đồng ý gửi nội dung CV đã ẩn danh tới Google Gemini để phân tích theo{' '}
+              <Link href="/privacy" target="_blank" className="text-orange-400 hover:underline inline-flex items-center gap-0.5">
+                Chính sách Quyền riêng tư
+              </Link>
+              .
+            </span>
+          </label>
+        </div>
+      </div>
+
       {/* Bottom Action Controls */}
       <div className="flex items-center justify-between pt-2">
         {onReUpload ? (
@@ -196,11 +289,11 @@ export function OcrPreviewModal({
 
         <button
           type="button"
-          disabled={isLoading || currentText.trim().length < 30}
+          disabled={isLoading || currentText.trim().length < 30 || !consentAgreed}
           onClick={handleConfirm}
           className={cn(
             'inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-md',
-            currentText.trim().length >= 30
+            currentText.trim().length >= 30 && consentAgreed
               ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600'
               : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
           )}

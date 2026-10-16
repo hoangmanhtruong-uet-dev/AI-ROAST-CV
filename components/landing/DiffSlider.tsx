@@ -322,9 +322,9 @@ export function DiffSlider({
 
             <div className="text-sm sm:text-base text-zinc-100 leading-relaxed font-normal bg-emerald-950/20 p-4 rounded-2xl border border-emerald-800/30 shadow-inner">
               {/* Highlight Action Verb + [Placeholder] chips */}
-              <span className="text-emerald-300 font-bold underline decoration-emerald-500/40 mr-1">
+              <span className="text-emerald-300 font-bold underline decoration-emerald-500/40">
                 {activePreset.after.actionVerb}
-              </span>
+              </span>{' '}
               {renderFormattedAfterText(activePreset.after.bulletText, activePreset.after.actionVerb)}
             </div>
           </div>

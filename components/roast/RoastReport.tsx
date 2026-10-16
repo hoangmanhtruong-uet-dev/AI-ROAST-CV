@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Flame,
   Briefcase,
@@ -14,6 +15,7 @@ import {
   Sparkles,
   Loader2,
   FileDown,
+  ChevronRight,
 } from 'lucide-react';
 import { RoastData, WeaknessItem } from '@/lib/schemas/roast';
 import { cn } from '@/lib/utils/cn';
@@ -24,6 +26,7 @@ import {
   WeaknessRewriteItem,
 } from './ExportCvModal';
 import { CheckoutModal } from '@/components/payment/CheckoutModal';
+import RoastShareModal from './RoastShareModal';
 import { useProTier } from '@/lib/payment/entitlement';
 import { WIPE_DATA_EVENT_NAME } from '@/lib/storage/wipe-data';
 import { getTrialUsage, recordTrialUsage } from '@/lib/payment/trial';
@@ -38,6 +41,7 @@ export interface RoastReportProps {
   onChangeTone: (newTone: 'spicy' | 'constructive') => void;
   onEditCv: () => void;
   onShareCard?: () => void;
+  onStartInterview?: () => void;
   className?: string;
 }
 
@@ -49,8 +53,11 @@ export function RoastReport({
   onChangeTone,
   onEditCv,
   onShareCard,
+  onStartInterview,
   className,
 }: RoastReportProps) {
+  const router = useRouter();
+
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [copiedRewriteIndex, setCopiedRewriteIndex] = useState<number | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -59,6 +66,7 @@ export function RoastReport({
   const [rewriteStates, setRewriteStates] = useState<Record<number, WeaknessCardState>>({});
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const { isPro } = useProTier();
 
@@ -69,12 +77,13 @@ export function RoastReport({
     }, 2500);
   }, []);
 
-  // Listen for Wipe Data to reset rewrite state
+  // Listen for Wipe Data to reset rewrite state and modals
   useEffect(() => {
     const handleDataWiped = () => {
       setRewriteStates({});
       setIsExportModalOpen(false);
       setIsCheckoutModalOpen(false);
+      setIsShareModalOpen(false);
     };
     window.addEventListener(WIPE_DATA_EVENT_NAME, handleDataWiped);
     return () => {
@@ -108,6 +117,48 @@ export function RoastReport({
       setTimeout(() => setCopiedRewriteIndex(null), 2000);
     } catch {
       // Fallback
+    }
+  };
+
+  const handleStartInterviewFromCv = () => {
+    let questionsToStore = data.interviewQuestions;
+    if (!questionsToStore || questionsToStore.length === 0) {
+      questionsToStore = (data.weaknesses || []).slice(0, 3).map((w, idx) => ({
+        questionId: `cv-q-${idx + 1}-${Date.now()}`,
+        role: 'custom' as const,
+        questionIndex: ((idx + 1) as 1 | 2 | 3),
+        title: `Chất vấn về: ${w.issue}`,
+        scenario: `Trong CV bạn ghi: "${w.quote}". Hội đồng tuyển dụng phát hiện vấn đề: ${w.issue}. ${w.rejectionReason || w.rejectReason || ''}`,
+        pressureContext: 'Bạn có đúng 90 giây để đưa ra bằng chứng thực tế bảo vệ nội dung này.',
+        timeLimitSeconds: 90,
+      }));
+    }
+
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem(
+          'airoastcv_custom_interview_questions',
+          JSON.stringify(questionsToStore)
+        );
+        sessionStorage.setItem(
+          'ai_roast_cv_context',
+          JSON.stringify({
+            customQuestions: questionsToStore,
+          })
+        );
+      } catch {
+        // Safe storage fallback
+      }
+    }
+
+    if (onStartInterview) {
+      onStartInterview();
+    }
+
+    if (router?.push) {
+      router.push('/interview');
+    } else if (typeof window !== 'undefined') {
+      window.location.href = '/interview';
     }
   };
 
@@ -364,6 +415,30 @@ export function RoastReport({
             <span className="text-xs text-zinc-500 font-medium mt-1">/ 100 điểm</span>
           </div>
         </div>
+      </div>
+
+      {/* 1.5. CV Bridge to /interview */}
+      <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-purple-950/40 via-indigo-950/30 to-zinc-900 border border-purple-500/40 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-purple-400">
+            <Sparkles className="w-4 h-4" />
+            <span>Phòng phỏng vấn áp lực cao</span>
+          </div>
+          <h3 className="text-base sm:text-lg font-bold text-white">
+            Dám đối mặt với Tech Lead để bảo vệ các điểm yếu trong CV này không?
+          </h3>
+          <p className="text-xs text-zinc-300">
+            Mô phỏng 3 câu hỏi xoáy trực tiếp vào những chi tiết vừa bị soi trong CV với đồng hồ đếm ngược 90s.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleStartInterviewFromCv}
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-bold bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white shadow-lg shadow-orange-500/20 transition-all shrink-0 cursor-pointer"
+        >
+          <span>⏱️ Luyện phỏng vấn từ chính CV này</span>
+          <ChevronRight className="w-4 h-4" />
+        </button>
       </div>
 
       {/* 2. Top Strengths */}
@@ -729,16 +804,18 @@ export function RoastReport({
             <span>Sửa lại văn bản CV</span>
           </button>
 
-          {onShareCard && (
-            <button
-              type="button"
-              onClick={onShareCard}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-orange-400 hover:text-orange-300 transition-colors border border-orange-500/30 cursor-pointer"
-            >
-              <Sparkles className="w-4 h-4 text-orange-400" />
-              <span>Tạo ảnh chia sẻ</span>
-            </button>
-          )}
+          <button
+            type="button"
+            data-testid="open-share-modal-btn"
+            onClick={() => {
+              setIsShareModalOpen(true);
+              onShareCard?.();
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-orange-400 hover:text-orange-300 transition-colors border border-orange-500/30 cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4 text-orange-400" />
+            <span>Tạo ảnh chia sẻ</span>
+          </button>
 
           <button
             type="button"
@@ -747,6 +824,15 @@ export function RoastReport({
           >
             <FileDown className="w-4 h-4" />
             <span>Xuất CV cải tiến (.md / .txt)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleStartInterviewFromCv}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-purple-600/30 to-indigo-600/30 hover:from-purple-600/40 hover:to-indigo-600/40 text-purple-200 transition-colors border border-purple-500/40 cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4 text-purple-400" />
+            <span>⏱️ Luyện phỏng vấn từ chính CV này</span>
           </button>
         </div>
 
@@ -781,6 +867,19 @@ export function RoastReport({
       <CheckoutModal
         isOpen={isCheckoutModalOpen}
         onClose={() => setIsCheckoutModalOpen(false)}
+      />
+
+      {/* 8.5. Viral Roast Share Modal (html-to-image) */}
+      <RoastShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        reportData={data}
+        score={data.roastScore ?? data.overallScore}
+        survivalScore={data.survivalScore}
+        funnyTitle={data.funnyTitle}
+        weaknesses={data.weaknesses}
+        tone={data.tone}
+        targetRole={targetRole}
       />
 
       {/* 9. Floating Toast Notification */}
