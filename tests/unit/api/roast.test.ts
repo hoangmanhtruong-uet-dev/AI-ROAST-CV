@@ -329,4 +329,222 @@ describe('Route Handlers: POST /api/roast & POST /api/extract (Feature 9, 11, 12
       expect(json.error).toMatch(/5MB/i);
     });
   });
+
+  describe('6. Targeted JD Match Integration & Zero-PII Sanitization (Milestone 1 / R1, R2)', () => {
+    const sampleJdText = `
+      Tuyển Dụng Frontend React Fresher:
+      - Thành thạo React, Next.js, TypeScript.
+      - Có kinh nghiệm với Docker, Redis caching, và CI/CD Pipeline tự động.
+      - Tinh thần làm việc nhóm, chịu áp lực tốt.
+    `.trim();
+
+    const mockRoastWithJd = {
+      ...mockRoastData,
+      jdMatch: {
+        matchScore: 72,
+        breakdown: {
+          hardSkillsMatch: 70,
+          experienceMatch: 65,
+          cultureMatch: 85,
+        },
+        missingKeywords: ['Docker', 'Redis', 'CI/CD Pipeline'],
+        tailoredRecommendations: [
+          'Bổ sung Docker vào dự án [Website Thương mại điện tử] với file [Dockerfile] chuẩn.',
+          'Tích hợp Redis cache cho endpoint giỏ hàng, giảm độ trễ từ [A]ms → [B]ms.',
+        ],
+      },
+    };
+
+    it('returns 200 and schema-valid jdMatch when valid jdText is provided', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify(mockRoastWithJd),
+      });
+
+      const request = new Request('http://localhost:3000/api/roast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cvText: sampleCvText,
+          tone: 'spicy',
+          targetRole: 'Frontend Developer',
+          jdText: sampleJdText,
+        }),
+      });
+
+      const response = await roastHandler(request);
+      expect(response.status).toBe(200);
+
+      const json = await response.json();
+      expect(json.success).toBe(true);
+      expect(json.data.jdMatch).toBeDefined();
+      expect(json.data.jdMatch.matchScore).toBe(72);
+      expect(json.data.jdMatch.breakdown.hardSkillsMatch).toBe(70);
+      expect(json.data.jdMatch.breakdown.experienceMatch).toBe(65);
+      expect(json.data.jdMatch.breakdown.cultureMatch).toBe(85);
+      expect(json.data.jdMatch.missingKeywords).toEqual(['Docker', 'Redis', 'CI/CD Pipeline']);
+      expect(json.data.jdMatch.tailoredRecommendations[0]).toMatch(/\[.+?\]/);
+      expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+    });
+
+    it('sanitizes PII in jdText before prompt construction (Defense-in-Depth)', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify(mockRoastWithJd),
+      });
+
+      const sensitiveJdText = `
+        Tuyển Frontend: Liên hệ recruiter Trần Thu Hà qua email hr-talent@techcorp.vn
+        hoặc gọi hotline 0912345678.
+        Nộp hồ sơ trực tuyến tại https://techcorp.vn/careers/frontend-fresher.
+      `;
+
+      const request = new Request('http://localhost:3000/api/roast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cvText: sampleCvText,
+          tone: 'spicy',
+          targetRole: 'Frontend Developer',
+          jdText: sensitiveJdText,
+        }),
+      });
+
+      const response = await roastHandler(request);
+      expect(response.status).toBe(200);
+
+      expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+      const callArgs = mockGenerateContent.mock.calls[0][0];
+      const promptString = JSON.stringify(callArgs);
+
+      // Verify personal contact info was sanitized before reaching Gemini
+      expect(promptString).not.toContain('hr-talent@techcorp.vn');
+      expect(promptString).not.toContain('0912345678');
+      expect(promptString).not.toContain('https://techcorp.vn/careers/frontend-fresher');
+      expect(promptString).toMatch(/\[EMAIL_REDACTED\]/);
+      expect(promptString).toMatch(/\[PHONE_REDACTED\]/);
+      expect(promptString).toMatch(/\[URL_REDACTED\]/);
+    });
+
+    it('logs zero raw jdText content to server logs and preserves Zero-PII logging', async () => {
+      const consoleSpy = vi.spyOn(console, 'log');
+      const loggerSpy = vi.spyOn(logger, 'info');
+
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify(mockRoastWithJd),
+      });
+
+      const sensitiveJdText = `
+        Yêu cầu tuyển dụng nội bộ TechCorp Vietnam.
+        Liên hệ trưởng phòng tuyển dụng: hr-lead@techcorp.vn - SĐT: 0987654321.
+      `;
+
+      const request = new Request('http://localhost:3000/api/roast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cvText: sampleCvText,
+          tone: 'constructive',
+          targetRole: 'Backend Developer',
+          jdText: sensitiveJdText,
+        }),
+      });
+
+      await roastHandler(request);
+
+      const allLoggedMessages = [
+        ...consoleSpy.mock.calls.flat().map(String),
+        ...loggerSpy.mock.calls.flat().map(String),
+      ].join(' ');
+
+      // Verify zero sensitive data or raw JD text in server logs
+      expect(allLoggedMessages).not.toContain('hr-lead@techcorp.vn');
+      expect(allLoggedMessages).not.toContain('0987654321');
+      expect(allLoggedMessages).not.toContain('TechCorp Vietnam');
+
+      // Verify logging metadata was recorded properly
+      const startLogCall = loggerSpy.mock.calls.find((call) =>
+        call[0]?.includes('Starting roast generation')
+      );
+      expect(startLogCall).toBeDefined();
+      expect(startLogCall?.[1]).toMatchObject({
+        hasJd: true,
+        jdLength: expect.any(Number),
+      });
+    });
+
+    it('maintains 100% backward compatibility when jdText is omitted', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify(mockRoastData),
+      });
+
+      const request = new Request('http://localhost:3000/api/roast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cvText: sampleCvText,
+          tone: 'spicy',
+        }),
+      });
+
+      const response = await roastHandler(request);
+      expect(response.status).toBe(200);
+
+      const json = await response.json();
+      expect(json.success).toBe(true);
+      expect(json.data.jdMatch).toBeUndefined();
+    });
+
+    it('returns realistic MOCK_JD_MATCH_DATA in offline mock fallback mode', async () => {
+      const originalMockEnv = process.env.GEMINI_MOCK;
+      process.env.GEMINI_MOCK = 'true';
+
+      try {
+        const request = new Request('http://localhost:3000/api/roast', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cvText: sampleCvText,
+            tone: 'spicy',
+            targetRole: 'Frontend Developer',
+            jdText: sampleJdText,
+          }),
+        });
+
+        const response = await roastHandler(request);
+        expect(response.status).toBe(200);
+
+        const json = await response.json();
+        expect(json.success).toBe(true);
+        expect(json.data.jdMatch).toBeDefined();
+        expect(json.data.jdMatch.matchScore).toBe(68);
+        expect(json.data.jdMatch.breakdown.hardSkillsMatch).toBe(65);
+        expect(json.data.jdMatch.missingKeywords).toContain('Docker');
+        expect(json.data.jdMatch.tailoredRecommendations.length).toBeGreaterThanOrEqual(3);
+        // Verify interview questions are switched to JD gap questions
+        expect(json.data.interviewQuestions[0].scenario).toMatch(/Redis|Kafka|MySQL/i);
+      } finally {
+        process.env.GEMINI_MOCK = originalMockEnv;
+      }
+    });
+
+    it('rejects payload with excessive jdText (> 10,000 characters) with 400 Bad Request', async () => {
+      const hugeJd = 'A'.repeat(10001);
+      const request = new Request('http://localhost:3000/api/roast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cvText: sampleCvText,
+          tone: 'spicy',
+          jdText: hugeJd,
+        }),
+      });
+
+      const response = await roastHandler(request);
+      expect(response.status).toBe(400);
+
+      const json = await response.json();
+      expect(json.success).toBe(false);
+      expect(json.error).toMatch(/vượt quá giới hạn 10\.000 ký tự|tối đa 10\.000 ký tự/i);
+      expect(mockGenerateContent).not.toHaveBeenCalled();
+    });
+  });
 });

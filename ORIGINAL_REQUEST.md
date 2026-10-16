@@ -213,3 +213,66 @@ Integrity mode: development
 - [ ] 100% test pass trong test suite hiện tại và mới bổ sung (vitest).
 - [ ] `npm run type-check` đạt 0 lỗi diagnostic.
 - [ ] `npm run build` biên dịch thành công 100% không lỗi Next.js 15.
+
+
+## 2026-10-16T14:31:11Z
+
+Xây dựng tính năng "So Khớp JD Thực Tế & Phân Tích Lỗ Hổng Kỹ Năng" (Targeted JD Match & ATS Keyword Gap Analyzer) cho AI Roast CV: Mở rộng trang /roast cho phép nộp kèm JD (hoặc chọn mẫu có sẵn), phân tích độ lệch từ khóa ATS qua Gemini Flash 1-request, hiển thị thẻ Bento Match Score % với mô hình Freemium (mở khóa Pro 29k), và tùy biến 3 câu hỏi phỏng vấn áp lực xoáy trực diện vào khoảng trống kỹ năng giữa CV và JD.
+
+Working directory: d:\MyProjects\MyProjectToMoney\AI ROAST CV
+Integrity mode: development
+
+## Requirements
+
+### R1. UX Nộp JD Linh Hoạt & Bộ Mẫu JD Thực Chiến
+- Tại màn hình nộp CV (app/roast/page.tsx & FileUploader.tsx): Nâng cấp trường "Vị trí ứng tuyển" thành bộ chọn 3 chế độ:
+  1. Nhập nhanh tên vị trí (ví dụ: Frontend Fresher).
+  2. Dán toàn bộ văn bản JD của công ty mục tiêu (hỗ trợ độ dài tối đa 3.000 ký tự).
+  3. 1-Click chọn JD mẫu có sẵn từ lib/data/sample-jds.ts (Frontend React Fresher, Backend Node/Go, Digital Marketing...).
+- Tích hợp bộ lọc pii-masker.ts khử khuẩn thông tin nhạy cảm trên cả văn bản JD trước khi gửi payload lên server.
+
+### R2. Gemini Response Schema & Prompt Single-Shot Phân Tích CV x JD
+- Nâng cấp lib/schemas/roast.ts và lib/gemini/prompts.ts:
+  - Khi có JD được cung cấp, Gemini Flash phân tích đồng thời và trả về trường jdMatch:
+    - matchScore: Điểm phần trăm tương thích tổng thể (0 - 100%).
+    - breakdown: Điểm chi tiết cho hardSkillsMatch, experienceMatch, cultureMatch (0 - 100%).
+    - missingKeywords: Mảng danh sách các từ khóa công nghệ, kỹ năng cứng, chứng chỉ có trong JD nhưng CV hoàn toàn thiếu.
+    - tailoredRecommendations: Danh sách gợi ý cách viết lại dự án để bổ sung từ khóa vào CV mà không bịa đặt.
+  - Tùy biến 3 câu hỏi phỏng vấn áp lực (interviewQuestions): Xoáy trực diện 100% vào khoảng trống giữa CV và JD (ví dụ chất vấn tại sao JD đòi hỏi tải cao Redis/Kafka mà CV chỉ có đồ án MySQL cơ bản).
+
+### R3. Thẻ Bento Giao Diện "Phân Tích Độ Lệch JD" & Freemium Gate
+- Xây dựng component thẻ Bento JdMatchCard.tsx đặt trang trọng ngay dưới bảng điểm ATS trên RoastReport.tsx:
+  - Vòng đo % Match Score trực quan phong cách Cyberpunk.
+  - 3 thanh đo tiến độ chi tiết: Kỹ năng cứng, Kinh nghiệm dự án, Độ phù hợp văn hóa.
+  - Danh sách badge "Từ khóa tử huyệt" (Missing ATS Keywords).
+- Cơ chế Freemium thông minh kết hợp Gói Pro 29k:
+  - Miễn phí: Xem tổng % Match Score, 3 thanh đo và Top 3 từ khóa thiếu quan trọng nhất.
+  - Người dùng có Pro Key: Mở khóa toàn bộ danh sách từ khóa ẩn + các câu gợi ý viết lại chèn từ khóa vào CV chuẩn ATS.
+  - Người dùng chưa có Pro Key: Hiển thị hiệu ứng mờ kính (Blur) với nút bấm kích hoạt nhanh Pro Key 29k.
+
+### R4. Kết Nối Phòng Phỏng Vấn Áp Lực 5 Bước (/interview)
+- Khi người dùng bấm nút "⏱️ Luyện phỏng vấn từ chính CV này", truyền toàn bộ ngữ cảnh JD và 3 câu hỏi xoáy theo JD sang sessionStorage.
+- PressureInterviewRoom.tsx: Hiển thị rõ badge "🎯 Phỏng vấn xoáy theo JD mục tiêu" và trích dẫn trực tiếp cả câu chữ trong CV lẫn yêu cầu trong JD làm căn cứ vặn hỏi.
+
+### R5. Kiểm Thử Toàn Diện, Chất Lượng & Hồi Quy (Zero-Regression)
+- Viết test suites đầy đủ cho JD Match Schema, UI Component JdMatchCard, cơ chế Freemium gating, và luồng nạp JD từ sample-jds.ts.
+- Bảo toàn 100% test pass trên toàn bộ 73 test suites hiện có + các tests mới bổ sung.
+- npm run type-check đạt 0 lỗi diagnostic.
+- npm run build biên dịch thành công 100% không lỗi Next.js 15.
+
+## Acceptance Criteria
+
+### Functional & Visual
+- [ ] Người dùng có thể chọn nhập tên vị trí nhanh, dán văn bản JD tùy chỉnh, hoặc chọn 1-click từ danh sách JD mẫu.
+- [ ] Khi nộp kèm JD, báo cáo Roast hiển thị đầy đủ thẻ Bento So Khớp JD với % Match Score và 3 thanh đo chi tiết.
+- [ ] Top 3 từ khóa thiếu hiển thị ở bản miễn phí; toàn bộ từ khóa ẩn và gợi ý chèn ATS mở khóa khi kích hoạt Pro Key.
+- [ ] 3 câu hỏi phỏng vấn áp lực xoáy trực tiếp vào lỗ hổng giữa CV và JD, truyền mượt mà sang /interview.
+
+### Security & Privacy
+- [ ] Văn bản JD được khử khuẩn PII trước khi gửi lên API.
+- [ ] Toàn bộ dữ liệu JD lưu tạm thời trong sessionStorage và tự hủy khi bấm nút Xóa dữ liệu 1-chạm.
+
+### Quality & Regression
+- [ ] 100% test pass trong test suite toàn dự án (vitest).
+- [ ] npm run type-check (tsc --noEmit) đạt 0 lỗi diagnostic.
+- [ ] npm run build biên dịch sạch sẽ 100%.

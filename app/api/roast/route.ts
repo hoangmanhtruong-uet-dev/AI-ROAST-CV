@@ -24,7 +24,7 @@ export async function POST(req: Request): Promise<NextResponse<RoastApiResponse>
       return NextResponse.json({ success: false, error: firstError }, { status: 400 });
     }
 
-    const { cvText, tone, targetRole } = parseResult.data;
+    const { cvText, tone, targetRole, jdText } = parseResult.data;
 
     // Tier 1: Payload Guard (CV text minimum 120 chars, maximum 5,000 chars 1-page CV truncation)
     const payloadCheck = validateRoastPayload(cvText);
@@ -59,11 +59,22 @@ export async function POST(req: Request): Promise<NextResponse<RoastApiResponse>
     const textToSanitize = payloadCheck.sanitizedText || payloadCheck.truncatedText || cvText;
     const sanitizedCvText = maskPii(textToSanitize).sanitizedText;
 
-    // Zero-PII Server Logging: NEVER log raw cvText
+    // Defense-in-depth: Ensure server-side PII sanitization on Job Description (JD) text
+    let sanitizedJdText: string | undefined = undefined;
+    if (jdText && typeof jdText === 'string') {
+      const trimmedJd = jdText.trim();
+      if (trimmedJd.length > 0) {
+        sanitizedJdText = maskPii(trimmedJd).sanitizedText;
+      }
+    }
+
+    // Zero-PII Server Logging: NEVER log raw cvText or jdText
     logger.info('Roast API: Starting roast generation', {
       tone,
       cvLength: sanitizedCvText.length,
       hasTargetRole: Boolean(targetRole),
+      hasJd: Boolean(sanitizedJdText),
+      jdLength: sanitizedJdText ? sanitizedJdText.length : 0,
     });
 
     let roastData;
@@ -72,6 +83,7 @@ export async function POST(req: Request): Promise<NextResponse<RoastApiResponse>
         cvText: sanitizedCvText,
         tone,
         targetRole,
+        jdText: sanitizedJdText,
       });
     } catch (aiError) {
       logger.error('Roast API: Gemini generation error', aiError);
@@ -88,6 +100,7 @@ export async function POST(req: Request): Promise<NextResponse<RoastApiResponse>
       tone,
       overallScore: roastData.overallScore,
       weaknessCount: roastData.weaknesses.length,
+      hasJdMatch: Boolean(roastData.jdMatch),
       durationMs: Date.now() - startTime,
     });
 

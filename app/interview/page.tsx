@@ -67,22 +67,51 @@ export default function InterviewPage() {
   // Continuous Pressure Interview Room (Plan v2 - R3)
   const [isPressureMode, setIsPressureMode] = React.useState<boolean>(false);
   const [hasCvQuestions, setHasCvQuestions] = React.useState<boolean>(false);
+  const [hasJdTarget, setHasJdTarget] = React.useState<boolean>(false);
+  const [jdTargetRole, setJdTargetRole] = React.useState<string | null>(null);
 
   const { isPro } = useProTier();
 
   // Check sessionStorage on mount for CV-tailored questions (CV Bridge)
   React.useEffect(() => {
     try {
-      const stored =
-        sessionStorage.getItem('airoastcv_custom_interview_questions') ||
-        sessionStorage.getItem('ai_roast_cv_context');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (
-          (Array.isArray(parsed) && parsed.length > 0) ||
-          (parsed && Array.isArray(parsed.customQuestions) && parsed.customQuestions.length > 0)
-        ) {
-          setHasCvQuestions(true);
+      const storedQuestions = sessionStorage.getItem('airoastcv_custom_interview_questions');
+      const storedContext = sessionStorage.getItem('ai_roast_cv_context');
+
+      let parsedQuestions: any = null;
+      if (storedQuestions) {
+        try {
+          parsedQuestions = JSON.parse(storedQuestions);
+        } catch {}
+      }
+
+      let parsedContext: any = null;
+      if (storedContext) {
+        try {
+          parsedContext = JSON.parse(storedContext);
+        } catch {}
+      }
+
+      const hasQuestions =
+        (Array.isArray(parsedQuestions) && parsedQuestions.length > 0) ||
+        (parsedContext && Array.isArray(parsedContext.customQuestions) && parsedContext.customQuestions.length > 0) ||
+        (Array.isArray(parsedContext) && parsedContext.length > 0);
+
+      if (hasQuestions) {
+        setHasCvQuestions(true);
+      }
+
+      const isJd = Boolean(
+        parsedContext?.hasJdTarget ||
+        parsedContext?.jdMatch ||
+        (parsedContext && parsedContext.customQuestions && parsedContext.customQuestions.some((q: any) => Boolean(q.jdEvidence))) ||
+        (Array.isArray(parsedQuestions) && parsedQuestions.some((q: any) => Boolean(q.jdEvidence)))
+      );
+
+      if (isJd) {
+        setHasJdTarget(true);
+        if (parsedContext?.targetRole) {
+          setJdTargetRole(parsedContext.targetRole);
         }
       }
     } catch {
@@ -94,6 +123,8 @@ export default function InterviewPage() {
   React.useEffect(() => {
     const handleDataWiped = () => {
       setHasCvQuestions(false);
+      setHasJdTarget(false);
+      setJdTargetRole(null);
       setIsPressureMode(false);
       handleRestart();
     };
@@ -423,7 +454,11 @@ export default function InterviewPage() {
     return (
       <main className="min-h-screen bg-[#0a0f1d] text-zinc-100 flex flex-col justify-between">
         <div className="flex-1 py-8">
-          <PressureInterviewRoom onExit={() => setIsPressureMode(false)} />
+          <PressureInterviewRoom
+            hasJdTarget={hasJdTarget}
+            targetRole={jdTargetRole || undefined}
+            onExit={() => setIsPressureMode(false)}
+          />
         </div>
       </main>
     );
@@ -436,11 +471,21 @@ export default function InterviewPage() {
         {step === 'ROLE_CHOOSER' && hasCvQuestions && (
           <div role="status" className="max-w-4xl mx-auto mb-6 px-4">
             <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-900/30 via-indigo-900/20 to-purple-900/30 border border-purple-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-purple-200 shadow-lg">
-              <div className="flex items-center gap-2.5">
-                <Sparkles className="w-5 h-5 text-purple-400 shrink-0" />
-                <span>
-                  <strong>Đã nạp 3 câu hỏi áp lực từ CV của bạn!</strong> Các câu hỏi xoáy trực tiếp vào những chi tiết vừa bị soi trong CV.
-                </span>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+                <div className="flex items-center gap-2.5">
+                  <Sparkles className="w-5 h-5 text-purple-400 shrink-0" />
+                  <span>
+                    <strong>Đã nạp 3 câu hỏi áp lực từ CV của bạn!</strong> Các câu hỏi xoáy trực tiếp vào những chi tiết vừa bị soi trong CV{jdTargetRole ? ` và vị trí ${jdTargetRole}` : ''}.
+                  </span>
+                </div>
+                {hasJdTarget && (
+                  <span
+                    data-testid="jd-tailored-badge-banner"
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 whitespace-nowrap self-start sm:self-auto"
+                  >
+                    🎯 Phỏng vấn xoáy theo JD mục tiêu
+                  </span>
+                )}
               </div>
               <button
                 type="button"
@@ -455,7 +500,15 @@ export default function InterviewPage() {
 
         {/* Chuyển đổi sang Phòng Phỏng Vấn Áp Lực Liên Hoàn */}
         {step === 'ROLE_CHOOSER' && (
-          <div className="max-w-4xl mx-auto px-4 mb-4 flex justify-end">
+          <div className="max-w-4xl mx-auto px-4 mb-4 flex items-center justify-between gap-2 flex-wrap">
+            {hasJdTarget ? (
+              <span
+                data-testid="jd-tailored-badge-page"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/40 shadow-xs"
+              >
+                🎯 Phỏng vấn xoáy theo JD mục tiêu
+              </span>
+            ) : <div />}
             <button
               type="button"
               onClick={() => setIsPressureMode(true)}

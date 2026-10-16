@@ -27,6 +27,7 @@ import {
 } from './ExportCvModal';
 import { CheckoutModal } from '@/components/payment/CheckoutModal';
 import RoastShareModal from './RoastShareModal';
+import { JdMatchCard } from './JdMatchCard';
 import { useProTier } from '@/lib/payment/entitlement';
 import { WIPE_DATA_EVENT_NAME } from '@/lib/storage/wipe-data';
 import { getTrialUsage, recordTrialUsage } from '@/lib/payment/trial';
@@ -144,6 +145,9 @@ export function RoastReport({
           'ai_roast_cv_context',
           JSON.stringify({
             customQuestions: questionsToStore,
+            hasJdTarget: Boolean(data.jdMatch),
+            targetRole: (data as any).targetRole || targetRole,
+            jdMatch: data.jdMatch,
           })
         );
       } catch {
@@ -766,6 +770,15 @@ export function RoastReport({
             ))}
           </div>
         </div>
+      )}
+
+      {/* 4.5. Targeted JD Match & Skill Gap Analysis */}
+      {data.jdMatch && (
+        <JdMatchCard
+          jdMatch={data.jdMatch}
+          targetRole={targetRole}
+          onOpenCheckout={() => setIsCheckoutModalOpen(true)}
+        />
       )}
 
       {/* 5. AI Disclaimer Banner */}

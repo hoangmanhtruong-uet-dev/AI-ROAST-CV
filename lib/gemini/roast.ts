@@ -58,15 +58,18 @@ export async function generateRoast(params: {
   cvText: string;
   tone: 'spicy' | 'constructive';
   targetRole?: string;
+  jdText?: string;
 }): Promise<RoastData> {
+  const hasJd = Boolean(params.jdText && params.jdText.trim().length > 0);
+
   if (isOfflineOrMockMode()) {
-    return getMockRoastData(params.tone);
+    return getMockRoastData(params.tone, { hasJd, jdText: params.jdText });
   }
 
   const ai = getGeminiClient();
   const systemInstruction =
     params.tone === 'spicy' ? SPICY_SYSTEM_PROMPT : CONSTRUCTIVE_SYSTEM_PROMPT;
-  const prompt = buildSanitizedRoastPrompt(params.cvText, params.targetRole);
+  const prompt = buildSanitizedRoastPrompt(params.cvText, params.targetRole, params.jdText);
 
   const response = await ai.models.generateContent({
     model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
@@ -108,7 +111,7 @@ export async function generateRoast(params: {
   const interviewQuestions =
     validated.interviewQuestions && validated.interviewQuestions.length === 3
       ? validated.interviewQuestions
-      : getMockRoastData(params.tone).interviewQuestions;
+      : getMockRoastData(params.tone, { hasJd, jdText: params.jdText }).interviewQuestions;
 
   // Guarantee placeholder [...] enforcement and anti-hallucination metric normalization (R2)
   const securedWeaknesses = validated.weaknesses.map((w) => {
@@ -122,6 +125,18 @@ export async function generateRoast(params: {
     };
   });
 
+  // Guarantee placeholder [...] enforcement in tailoredRecommendations when jdMatch is returned
+  let securedJdMatch = validated.jdMatch;
+  if (securedJdMatch && Array.isArray(securedJdMatch.tailoredRecommendations)) {
+    const sanitizedRecs = securedJdMatch.tailoredRecommendations.map((rec) =>
+      sanitizeFixGuidelineMetrics(rec)
+    );
+    securedJdMatch = {
+      ...securedJdMatch,
+      tailoredRecommendations: sanitizedRecs,
+    };
+  }
+
   return {
     ...validated,
     overallScore: score,
@@ -132,5 +147,6 @@ export async function generateRoast(params: {
     verdict,
     weaknesses: securedWeaknesses,
     interviewQuestions,
+    jdMatch: securedJdMatch,
   };
 }

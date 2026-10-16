@@ -36,6 +36,7 @@ export interface PressureQuestion {
   tag: string;
   title: string;
   cvEvidence?: string;
+  jdEvidence?: string;
   scenario: string;
   pressureContext: string;
   question: string;
@@ -90,6 +91,8 @@ export type InterviewStage =
 export interface PressureInterviewRoomProps {
   initialQuestions?: PressureQuestion[];
   initialRole?: InterviewRole;
+  hasJdTarget?: boolean;
+  targetRole?: string;
   onExit?: () => void;
   className?: string;
 }
@@ -204,9 +207,62 @@ const DEFAULT_MARKETING_QUESTIONS: PressureQuestion[] = [
   },
 ];
 
+function extractEvidenceFromQuestion(
+  q: any,
+  index: number,
+  jdMatch?: any,
+  roleTitle?: string | null
+): { cvEvidence: string; jdEvidence?: string } {
+  let cvEvidence = q.cvEvidence;
+  let jdEvidence = q.jdEvidence;
+
+  if (cvEvidence && jdEvidence) {
+    return { cvEvidence, jdEvidence };
+  }
+
+  const scenario = q.scenario || '';
+
+  // Extract from scenario if it contains: "JD yêu cầu ... Tuy nhiên, trong CV..."
+  if (!jdEvidence && scenario) {
+    const jdMatchRegex = /(?:JD|Vị trí)\s*(?:tuyển dụng)?\s*yêu cầu[:\s]+([^.]+?\.)/i;
+    const matchJd = scenario.match(jdMatchRegex);
+    if (matchJd && matchJd[1]) {
+      jdEvidence = matchJd[1].trim();
+    }
+  }
+
+  if (!cvEvidence && scenario) {
+    const cvMatchRegex = /(?:Tuy nhiên,?\s*)?(?:trong CV|CV của bạn)[:\s]+([^.]+?\.)/i;
+    const matchCv = scenario.match(cvMatchRegex);
+    if (matchCv && matchCv[1]) {
+      cvEvidence = matchCv[1].trim();
+    }
+  }
+
+  // If JD context is present and jdEvidence is still missing
+  if (!jdEvidence) {
+    if (jdMatch && Array.isArray(jdMatch.missingKeywords) && jdMatch.missingKeywords.length > 0) {
+      const kw = jdMatch.missingKeywords[index % jdMatch.missingKeywords.length];
+      jdEvidence = `Yêu cầu vị trí ${roleTitle || 'mục tiêu'}: Bắt buộc có kinh nghiệm thực chiến với ${kw}.`;
+    } else if (jdMatch && Array.isArray(jdMatch.tailoredRecommendations) && jdMatch.tailoredRecommendations.length > 0) {
+      jdEvidence = jdMatch.tailoredRecommendations[index % jdMatch.tailoredRecommendations.length];
+    } else if (roleTitle) {
+      jdEvidence = `Yêu cầu vị trí ${roleTitle}: Đối chiếu năng lực thực tế so với tiêu chuẩn tuyển dụng.`;
+    }
+  }
+
+  if (!cvEvidence) {
+    cvEvidence = q.cvEvidence || q.scenario || 'Trích dẫn chi tiết từ CV của bạn';
+  }
+
+  return { cvEvidence, jdEvidence };
+}
+
 export function PressureInterviewRoom({
   initialQuestions,
   initialRole = 'it',
+  hasJdTarget,
+  targetRole,
   onExit,
   className,
 }: PressureInterviewRoomProps) {
@@ -219,6 +275,12 @@ export function PressureInterviewRoom({
   );
   const [currentIdx, setCurrentIdx] = useState<number>(0);
   const [hasCvContext, setHasCvContext] = useState<boolean>(false);
+  const [hasJdContext, setHasJdContext] = useState<boolean>(() => {
+    if (hasJdTarget) return true;
+    if (initialQuestions && initialQuestions.some((q) => Boolean(q.jdEvidence))) return true;
+    return false;
+  });
+  const [contextTargetRole, setContextTargetRole] = useState<string | null>(targetRole || null);
 
   // States bộ đếm & nhập liệu
   const [readingCountdown, setReadingCountdown] = useState<number>(5);
@@ -257,26 +319,67 @@ export function PressureInterviewRoom({
   // ==========================================
   useEffect(() => {
     try {
-      // Check both keys supported by CV Bridge
-      const cvQuestionsRaw =
-        sessionStorage.getItem('airoastcv_custom_interview_questions') ||
-        sessionStorage.getItem('ai_roast_cv_context');
+      const cvContextRaw = sessionStorage.getItem('ai_roast_cv_context');
+      let parsedContext: any = null;
+      if (cvContextRaw) {
+        try {
+          parsedContext = JSON.parse(cvContextRaw);
+        } catch {}
+      }
 
+      const cvQuestionsRaw = sessionStorage.getItem('airoastcv_custom_interview_questions');
+      let parsedQuestionsRaw: any = null;
       if (cvQuestionsRaw) {
-        let loadedQuestions: any[] = [];
-        const parsed = JSON.parse(cvQuestionsRaw);
-        if (Array.isArray(parsed)) {
-          loadedQuestions = parsed;
-        } else if (parsed && Array.isArray(parsed.customQuestions)) {
-          loadedQuestions = parsed.customQuestions;
-        }
+        try {
+          parsedQuestionsRaw = JSON.parse(cvQuestionsRaw);
+        } catch {}
+      }
 
-        if (loadedQuestions.length > 0) {
-          const normalized: PressureQuestion[] = loadedQuestions.map((q, idx) => ({
+      let loadedQuestions: any[] = [];
+      if (Array.isArray(parsedQuestionsRaw) && parsedQuestionsRaw.length > 0) {
+        loadedQuestions = parsedQuestionsRaw;
+      } else if (parsedContext && Array.isArray(parsedContext.customQuestions) && parsedContext.customQuestions.length > 0) {
+        loadedQuestions = parsedContext.customQuestions;
+      } else if (Array.isArray(parsedContext) && parsedContext.length > 0) {
+        loadedQuestions = parsedContext;
+      }
+
+      const isJdTarget = Boolean(
+        hasJdTarget ||
+        parsedContext?.hasJdTarget ||
+        parsedContext?.jdMatch ||
+        loadedQuestions.some((q) => Boolean(q.jdEvidence)) ||
+        (initialQuestions && initialQuestions.some((q) => Boolean(q.jdEvidence)))
+      );
+
+      const resolvedRole = parsedContext?.targetRole || targetRole || null;
+      if (resolvedRole) {
+        setContextTargetRole(resolvedRole);
+      }
+
+      if (isJdTarget) {
+        setHasJdContext(true);
+      }
+
+      if (loadedQuestions.length > 0) {
+        const normalized: PressureQuestion[] = loadedQuestions.map((q, idx) => {
+          const evidence = isJdTarget
+            ? extractEvidenceFromQuestion(q, idx, parsedContext?.jdMatch, resolvedRole)
+            : {
+                cvEvidence: q.cvEvidence || q.scenario || 'Trích dẫn chi tiết từ CV của bạn',
+                jdEvidence: q.jdEvidence,
+              };
+
+          return {
             id: q.questionId || q.id || `cv-q-${idx + 1}`,
-            tag: q.tag || `Vòng ${idx + 1}/${loadedQuestions.length} • Câu hỏi từ CV của bạn`,
+            tag:
+              q.tag ||
+              (isJdTarget
+                ? `Vòng ${idx + 1}/${loadedQuestions.length} • Xoáy JD & CV`
+                : `Vòng ${idx + 1}/${loadedQuestions.length} • Câu hỏi từ CV của bạn`),
             title: q.title || `Câu hỏi áp lực #${idx + 1}`,
-            cvEvidence: q.cvEvidence || q.scenario || 'Trích dẫn chi tiết từ CV của bạn',
+            cvEvidence: evidence.cvEvidence,
+            jdEvidence: evidence.jdEvidence,
             scenario: q.scenario || q.question || '',
             pressureContext:
               q.pressureContext ||
@@ -289,22 +392,35 @@ export function PressureInterviewRoom({
             sampleBestAnswer:
               q.sampleBestAnswer ||
               'Áp dụng quy trình chuẩn: Xác định phạm vi vấn đề, triển khai giải pháp kỹ thuật cụ thể và đo lường kết quả bằng chỉ số định lượng rõ ràng.',
-          }));
+          };
+        });
 
-          setQuestions(normalized);
-          setHasCvContext(true);
-          setSelectedTrack('cv_tailored');
-        }
+        setQuestions(normalized);
+        setHasCvContext(true);
+        setSelectedTrack('cv_tailored');
+      } else if (initialQuestions && initialQuestions.length > 0 && isJdTarget) {
+        const enhanced = initialQuestions.map((q, idx) => {
+          if (q.jdEvidence) return q;
+          const evidence = extractEvidenceFromQuestion(q, idx, parsedContext?.jdMatch, resolvedRole);
+          return {
+            ...q,
+            cvEvidence: q.cvEvidence || evidence.cvEvidence,
+            jdEvidence: evidence.jdEvidence,
+          };
+        });
+        setQuestions(enhanced);
       }
     } catch {
       // Giữ bộ câu hỏi mặc định
     }
-  }, []);
+  }, [hasJdTarget, initialQuestions, targetRole]);
 
   // Listen for Wipe Data to reset state
   useEffect(() => {
     const handleWiped = () => {
       setHasCvContext(false);
+      setHasJdContext(false);
+      setContextTargetRole(null);
       setSelectedTrack('it');
       setQuestions(DEFAULT_IT_QUESTIONS);
       setStage('LOBBY');
@@ -673,12 +789,22 @@ export function PressureInterviewRoom({
                 role="status"
                 className="p-4 rounded-xl border border-purple-500/40 bg-purple-500/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-purple-200"
               >
-                <div className="flex items-center gap-2.5">
-                  <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
-                  <span>
-                    <strong>Đã nạp 3 câu hỏi áp lực từ CV của bạn!</strong> Các câu hỏi được thiết
-                    kế riêng xoáy vào chính điểm yếu lớn nhất trong CV vừa quét.
-                  </span>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
+                    <span>
+                      <strong>Đã nạp 3 câu hỏi áp lực từ CV của bạn!</strong> Các câu hỏi được thiết
+                      kế riêng xoáy vào chính điểm yếu lớn nhất trong CV vừa quét{contextTargetRole ? ` và vị trí ${contextTargetRole}` : ''}.
+                    </span>
+                  </div>
+                  {hasJdContext && (
+                    <span
+                      data-testid="lobby-jd-badge"
+                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0 self-start sm:self-auto"
+                    >
+                      🎯 Phỏng vấn xoáy theo JD mục tiêu
+                    </span>
+                  )}
                 </div>
                 <button
                   type="button"
@@ -759,11 +885,20 @@ export function PressureInterviewRoom({
                         : 'border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900 text-zinc-400'
                     )}
                   >
-                    <div className="font-bold text-sm text-purple-400 flex items-center gap-1.5">
-                      <Sparkles className="w-4 h-4" /> Từ CV Vừa Roast
+                    <div className="font-bold text-sm text-purple-400 flex items-center justify-between gap-1.5">
+                      <span className="flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4" /> Từ CV Vừa Roast
+                      </span>
+                      {hasJdContext && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          🎯 Theo JD
+                        </span>
+                      )}
                     </div>
                     <p className="text-[11px] text-zinc-400 mt-1">
-                      3 câu hỏi áp lực cá nhân hóa theo CV của bạn.
+                      {hasJdContext
+                        ? '3 câu hỏi áp lực xoáy trực diện vào lỗ hổng giữa CV và JD mục tiêu.'
+                        : '3 câu hỏi áp lực cá nhân hóa theo CV của bạn.'}
                     </p>
                   </button>
                 )}
@@ -883,9 +1018,19 @@ export function PressureInterviewRoom({
             {/* Top Bar: Tiến độ & Countdown */}
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800 pb-4">
               <div>
-                <span className="text-xs font-mono uppercase tracking-wider text-orange-400">
-                  {currentQuestion.tag}
-                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-mono uppercase tracking-wider text-orange-400">
+                    {currentQuestion.tag}
+                  </span>
+                  {hasJdContext && (
+                    <span
+                      data-testid="stage-jd-badge"
+                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/40"
+                    >
+                      🎯 Phỏng vấn xoáy theo JD mục tiêu
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center gap-2 mt-1.5">
                   {questions.map((q, idx) => (
                     <div
@@ -950,9 +1095,57 @@ export function PressureInterviewRoom({
               )}
             </div>
 
-            {/* Bằng chứng trích từ CV */}
-            {currentQuestion.cvEvidence && (
-              <div className="rounded-xl bg-zinc-950/90 border border-zinc-800 p-4">
+            {/* Khung trích dẫn bằng chứng: Dual-Citation khi có yêu cầu JD, hoặc Single-Citation khi chỉ có CV */}
+            {currentQuestion.jdEvidence ? (
+              <div
+                data-testid="dual-citation-block"
+                className="rounded-xl bg-zinc-950/90 border border-amber-500/30 p-4 space-y-3"
+              >
+                <div className="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-zinc-800/80">
+                  <div className="text-[11px] font-mono uppercase text-amber-400 flex items-center gap-1.5 font-bold">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    Soi chiếu lỗ hổng: CV vs JD Mục Tiêu
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30">
+                    Khoảng trống kỹ năng (CV vs JD Gap)
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* Căn cứ từ CV */}
+                  <div
+                    data-testid="cv-evidence-card"
+                    className="rounded-lg bg-zinc-900/80 border border-zinc-800 p-3 space-y-1.5"
+                  >
+                    <div className="text-[11px] font-mono uppercase text-zinc-400 flex items-center gap-1.5">
+                      <Briefcase className="w-3.5 h-3.5 text-orange-400" />
+                      Căn cứ từ CV:
+                    </div>
+                    <blockquote className="text-xs sm:text-sm italic text-zinc-300">
+                      “{currentQuestion.cvEvidence || 'Chưa có thông tin dự án liên quan trong CV'}”
+                    </blockquote>
+                  </div>
+
+                  {/* Đối chiếu yêu cầu JD */}
+                  <div
+                    data-testid="jd-evidence-card"
+                    className="rounded-lg bg-amber-950/20 border border-amber-500/20 p-3 space-y-1.5"
+                  >
+                    <div className="text-[11px] font-mono uppercase text-amber-300 flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                      Đối chiếu yêu cầu JD:
+                    </div>
+                    <blockquote className="text-xs sm:text-sm italic text-amber-200/90">
+                      “{currentQuestion.jdEvidence}”
+                    </blockquote>
+                  </div>
+                </div>
+              </div>
+            ) : currentQuestion.cvEvidence ? (
+              <div
+                data-testid="single-citation-block"
+                className="rounded-xl bg-zinc-950/90 border border-zinc-800 p-4"
+              >
                 <div className="text-[11px] font-mono uppercase text-zinc-400 mb-1 flex items-center gap-1.5">
                   <Briefcase className="w-3.5 h-3.5 text-orange-400" />
                   Chi tiết trong CV của bạn bị HR soi:
@@ -961,7 +1154,7 @@ export function PressureInterviewRoom({
                   “{currentQuestion.cvEvidence}”
                 </blockquote>
               </div>
-            )}
+            ) : null}
 
             {/* Câu hỏi vặn của HR */}
             <div className="rounded-xl bg-gradient-to-br from-orange-500/15 via-rose-500/10 to-zinc-900 border border-orange-500/40 p-5 space-y-2">
@@ -1094,9 +1287,19 @@ export function PressureInterviewRoom({
             >
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="space-y-1">
-                  <span className="text-xs font-mono uppercase tracking-wider text-zinc-400">
-                    PHÁN QUYẾT CUỐI CÙNG TỪ PHÒNG PHỎNG VẤN
-                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-mono uppercase tracking-wider text-zinc-400">
+                      PHÁN QUYẾT CUỐI CÙNG TỪ PHÒNG PHỎNG VẤN
+                    </span>
+                    {hasJdContext && (
+                      <span
+                        data-testid="result-jd-badge"
+                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                      >
+                        🎯 Phỏng vấn xoáy theo JD mục tiêu
+                      </span>
+                    )}
+                  </div>
                   <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
                     {report.verdictTitle}
                   </h2>

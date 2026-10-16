@@ -1,5 +1,55 @@
 import { Type } from '@google/genai';
 
+/**
+ * Gemini GenAI Schema for Targeted Job Description (JD) Match Analysis.
+ * Implements Milestone 1 (Targeted JD Match & ATS Keyword Gap Analyzer).
+ */
+export const geminiJdMatchSchema = {
+  type: Type.OBJECT,
+  description:
+    'Kết quả phân tích tương thích CV x JD (chỉ sinh khi có thông tin target_job_description)',
+  properties: {
+    matchScore: {
+      type: Type.INTEGER,
+      description: 'Điểm phần trăm tương thích tổng thể giữa CV và JD từ 0 đến 100',
+    },
+    breakdown: {
+      type: Type.OBJECT,
+      description: 'Điểm chi tiết từng khía cạnh tương thích từ 0 đến 100',
+      properties: {
+        hardSkillsMatch: {
+          type: Type.INTEGER,
+          description: 'Mức độ đáp ứng kỹ năng cứng và công nghệ từ 0 đến 100',
+        },
+        experienceMatch: {
+          type: Type.INTEGER,
+          description: 'Mức độ đáp ứng kinh nghiệm dự án và thực chiến từ 0 đến 100',
+        },
+        cultureMatch: {
+          type: Type.INTEGER,
+          description: 'Mức độ phù hợp với văn hóa và môi trường làm việc từ 0 đến 100',
+        },
+      },
+      required: ['hardSkillsMatch', 'experienceMatch', 'cultureMatch'],
+    },
+    missingKeywords: {
+      type: Type.ARRAY,
+      items: { type: Type.STRING },
+      description:
+        'Danh sách các từ khóa công nghệ, kỹ năng cứng, chứng chỉ có trong JD nhưng CV hoàn toàn thiếu hoặc thể hiện quá mờ nhạt',
+    },
+    tailoredRecommendations: {
+      type: Type.ARRAY,
+      items: { type: Type.STRING },
+      description:
+        'Danh sách gợi ý cách bổ sung dự án hoặc viết lại câu để đưa từ khóa còn thiếu vào CV chuẩn ATS (tuân thủ placeholder [...], tuyệt đối không bịa đặt số liệu)',
+    },
+  },
+  required: ['matchScore', 'breakdown', 'missingKeywords', 'tailoredRecommendations'],
+};
+
+export const geminiJdMatchProperty = geminiJdMatchSchema;
+
 export const geminiRoastResponseSchema = {
   type: Type.OBJECT,
   properties: {
@@ -69,22 +119,23 @@ export const geminiRoastResponseSchema = {
       },
       description: 'Khuyến nghị tối ưu hóa bộ lọc ATS (cấu trúc, từ khóa, định dạng, độ dài)',
     },
+    jdMatch: geminiJdMatchSchema,
     interviewQuestions: {
       type: Type.ARRAY,
       items: {
         type: Type.OBJECT,
         properties: {
-          questionId: { type: Type.STRING, description: 'ID duy nhất cho câu hỏi, ví dụ cv-q1, cv-q2, cv-q3' },
+          questionId: { type: Type.STRING, description: 'ID duy nhất cho câu hỏi, ví dụ cv-q1, cv-q2, cv-q3 hoặc jd-q1, jd-q2, jd-q3' },
           role: { type: Type.STRING, enum: ['custom'] },
           questionIndex: { type: Type.INTEGER, enum: [1, 2, 3] },
           title: { type: Type.STRING, description: 'Tiêu đề ngắn gọn cho tình huống áp lực' },
-          scenario: { type: Type.STRING, description: 'Tình huống phỏng vấn áp lực bắt nguồn trực tiếp từ công nghệ, dự án hoặc tuyên bố mơ hồ trong CV' },
+          scenario: { type: Type.STRING, description: 'Tình huống phỏng vấn áp lực bắt nguồn trực tiếp từ công nghệ, dự án trong CV hoặc khoảng cách kỹ năng giữa CV và JD' },
           pressureContext: { type: Type.STRING, description: 'Bối cảnh dồn ép nghẹt thở từ sếp, khách hàng hoặc deadline' },
           timeLimitSeconds: { type: Type.INTEGER, enum: [90, 75, 60], description: 'Thời gian đếm ngược: 90s cho Q1, 75s cho Q2, 60s cho Q3' },
         },
         required: ['questionId', 'role', 'questionIndex', 'title', 'scenario', 'pressureContext', 'timeLimitSeconds'],
       },
-      description: 'Bộ đúng 3 câu hỏi phỏng vấn áp lực leo thang (90s -> 75s -> 60s) cá nhân hóa theo các điểm yếu và dự án trong CV',
+      description: 'Bộ đúng 3 câu hỏi phỏng vấn áp lực leo thang (90s -> 75s -> 60s) cá nhân hóa theo các điểm yếu trong CV hoặc xoáy trực diện 100% vào khoảng cách giữa CV và JD',
     },
     disclaimer: {
       type: Type.STRING,

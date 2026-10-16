@@ -14,6 +14,7 @@ import {
 import { FileUploader } from '@/components/roast/FileUploader';
 import { OcrPreviewModal } from '@/components/roast/OcrPreviewModal';
 import { ToneSelector } from '@/components/roast/ToneSelector';
+import { TargetRoleSelector, JdInputMode } from '@/components/roast/TargetRoleSelector';
 import { RoastReport } from '@/components/roast/RoastReport';
 import { RoastData } from '@/lib/schemas/roast';
 import { ExtractApiResponse } from '@/lib/schemas/extract';
@@ -40,6 +41,9 @@ export default function RoastPage() {
   const [rawExtractedText, setRawExtractedText] = useState<string>('');
   const [confirmedCvText, setConfirmedCvText] = useState<string>('');
   const [targetRole, setTargetRole] = useState<string>('');
+  const [jdText, setJdText] = useState<string>('');
+  const [jdMode, setJdMode] = useState<JdInputMode>('quick');
+  const [selectedSampleId, setSelectedSampleId] = useState<string | null>(null);
   const [isExtracting, setIsExtracting] = useState<boolean>(false);
   const [reportData, setReportData] = useState<RoastData | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -131,6 +135,7 @@ export default function RoastPage() {
           cvText: payloadText,
           tone,
           targetRole: targetRole.trim() || undefined,
+          jdText: jdText.trim() ? maskPii(jdText.trim()).sanitizedText : undefined,
         }),
       });
 
@@ -164,6 +169,10 @@ export default function RoastPage() {
     setConfirmedCvText('');
     setReportData(null);
     setErrorMessage(null);
+    setTargetRole('');
+    setJdText('');
+    setJdMode('quick');
+    setSelectedSampleId(null);
   };
 
   return (
@@ -225,19 +234,30 @@ export default function RoastPage() {
               />
             </div>
 
-            {/* Target Role (Optional) */}
+            {/* Target Role & JD Selection (3 Modes) */}
             <div className="flex flex-col gap-2">
-              <label htmlFor="target-role-input" className="text-sm font-semibold text-zinc-200">
-                2. Vị trí bạn đang ứng tuyển (Tùy chọn):
-              </label>
-              <input
-                id="target-role-input"
-                type="text"
-                placeholder="Ví dụ: Frontend Developer, Marketing Executive, Data Analyst..."
-                value={targetRole}
-                onChange={(e) => setTargetRole(e.target.value)}
-                maxLength={100}
-                className="w-full px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-semibold text-zinc-200">
+                  2. Vị trí bạn đang ứng tuyển (Tùy chọn):
+                </label>
+                {jdText.trim() && (
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 font-medium">
+                    🎯 Đã nạp JD ({jdText.trim().length} ký tự)
+                  </span>
+                )}
+              </div>
+              <TargetRoleSelector
+                targetRole={targetRole}
+                jdText={jdText}
+                mode={jdMode}
+                selectedSampleId={selectedSampleId}
+                onChange={({ targetRole: newRole, jdText: newJd, mode: newMode, selectedSampleId: newSampleId }) => {
+                  setTargetRole(newRole);
+                  setJdText(newJd);
+                  setJdMode(newMode);
+                  setSelectedSampleId(newSampleId ?? null);
+                }}
+                disabled={isExtracting}
               />
             </div>
 
