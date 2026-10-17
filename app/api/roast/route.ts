@@ -87,10 +87,11 @@ export async function POST(req: Request): Promise<NextResponse<RoastApiResponse>
       });
     } catch (aiError) {
       logger.error('Roast API: Gemini generation error', aiError);
+      const detail = aiError instanceof Error ? aiError.message : String(aiError);
       return NextResponse.json(
         {
           success: false,
-          error: 'Hệ thống AI phản hồi không hợp lệ hoặc xảy ra lỗi xử lý. Vui lòng thử lại sau.',
+          error: `Lỗi phân tích AI: ${detail}`,
         },
         { status: 502 }
       );

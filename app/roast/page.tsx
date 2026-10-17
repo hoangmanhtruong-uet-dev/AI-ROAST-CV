@@ -20,6 +20,7 @@ import { RoastData } from '@/lib/schemas/roast';
 import { ExtractApiResponse } from '@/lib/schemas/extract';
 import { WIPE_DATA_EVENT_NAME } from '@/lib/storage/wipe-data';
 import { maskPii } from '@/lib/utils/pii-masker';
+import { extractPdfTextDirect } from '@/lib/utils/pdf-extractor';
 
 type RoastStep = 'INPUT' | 'PREVIEW' | 'ROASTING' | 'RESULT' | 'ERROR';
 
@@ -69,13 +70,42 @@ export default function RoastPage() {
     return () => clearInterval(timer);
   }, [step]);
 
-  // Handle file selection from FileUploader -> call /api/extract
+  // Handle file selection from FileUploader -> Fast client-side extract with API fallback
   const handleFileSelected = async (selectedFile: File) => {
     setFile(selectedFile);
     setErrorMessage(null);
     setIsExtracting(true);
 
     try {
+      // 1. Giải pháp 1: Nếu là file PDF, bóc tách text trực tiếp ngay trên Client (0 API tokens, 0 delay)
+      const isPdf = selectedFile.type === 'application/pdf' || selectedFile.name.toLowerCase().endsWith('.pdf');
+      if (isPdf) {
+        try {
+          const arrayBuffer = await selectedFile.arrayBuffer();
+          const directResult = await extractPdfTextDirect(arrayBuffer);
+
+          if (directResult.totalPages && directResult.totalPages > 1) {
+            throw new Error(
+              `CV vượt quá giới hạn 1 trang (phát hiện ${directResult.totalPages} trang). Vui lòng tối ưu CV thành 1 trang để đạt hiệu quả cao nhất.`
+            );
+          }
+
+          if (directResult.success && directResult.text && directResult.text.length >= 80) {
+            setRawExtractedText(directResult.text);
+            setConfirmedCvText(directResult.text);
+            setStep('PREVIEW');
+            setIsExtracting(false);
+            return;
+          }
+        } catch (pdfErr) {
+          if (pdfErr instanceof Error && pdfErr.message.includes('vượt quá giới hạn 1 trang')) {
+            throw pdfErr;
+          }
+          // Fallback to server OCR if client parsing couldn't find text layer (e.g. scanned image PDF)
+        }
+      }
+
+      // 2. Fallback sang Server API nếu là ảnh PNG/JPG hoặc PDF dạng scan
       const formData = new FormData();
       formData.append('file', selectedFile);
 

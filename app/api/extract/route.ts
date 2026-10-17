@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { validateCvBuffer } from '@/lib/utils/file-validator';
 import { extractJsonRequestSchema, ExtractApiResponse } from '@/lib/schemas/extract';
 import { extractCvText } from '@/lib/gemini/extract';
+import { extractPdfTextDirect } from '@/lib/utils/pdf-extractor';
 import { logger } from '@/lib/logger';
 
 export async function POST(req: Request): Promise<NextResponse<ExtractApiResponse>> {
@@ -58,10 +59,24 @@ export async function POST(req: Request): Promise<NextResponse<ExtractApiRespons
         pageCount: validation.pageCount,
       });
 
-      const extractedText = await extractCvText({
-        buffer,
-        mimeType: validation.mimeType,
-      });
+      let extractedText = '';
+      if (validation.fileType === 'pdf') {
+        const directResult = await extractPdfTextDirect(buffer);
+        if (directResult.success && directResult.text) {
+          extractedText = directResult.text;
+          logger.info('Extract API: Direct PDF text extracted without AI call', {
+            charCount: extractedText.length,
+            durationMs: Date.now() - startTime,
+          });
+        }
+      }
+
+      if (!extractedText) {
+        extractedText = await extractCvText({
+          buffer,
+          mimeType: validation.mimeType,
+        });
+      }
 
       logger.info('Extract API: Extraction successful', {
         fileType: validation.fileType,
