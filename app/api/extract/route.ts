@@ -116,8 +116,9 @@ export async function POST(req: Request): Promise<NextResponse<ExtractApiRespons
     );
   } catch (error) {
     logger.error('Extract API: Unexpected error', error);
+    const detail = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { success: false, error: 'Đã xảy ra lỗi khi trích xuất văn bản. Vui lòng thử lại sau.' },
+      { success: false, error: `Đã xảy ra lỗi khi trích xuất văn bản: ${detail}` },
       { status: 500 }
     );
   }

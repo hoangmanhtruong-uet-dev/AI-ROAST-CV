@@ -32,3 +32,14 @@ export function isOfflineOrMockMode(): boolean {
     (!process.env.GEMINI_API_KEY && process.env.NODE_ENV !== 'test')
   );
 }
+
+/**
+ * Returns a valid Gemini model name, automatically normalizing deprecated or non-existent models.
+ */
+export function getActiveGeminiModel(): string {
+  const model = (process.env.GEMINI_MODEL || '').trim();
+  if (!model || model === 'gemini-2.5-flash') {
+    return 'gemini-2.0-flash';
+  }
+  return model;
+}

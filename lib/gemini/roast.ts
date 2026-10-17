@@ -1,4 +1,4 @@
-import { getGeminiClient, isOfflineOrMockMode } from './client';
+import { getGeminiClient, isOfflineOrMockMode, getActiveGeminiModel } from './client';
 import {
   SPICY_SYSTEM_PROMPT,
   CONSTRUCTIVE_SYSTEM_PROMPT,
@@ -72,7 +72,7 @@ export async function generateRoast(params: {
   const prompt = buildSanitizedRoastPrompt(params.cvText, params.targetRole, params.jdText);
 
   const response = await ai.models.generateContent({
-    model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+    model: getActiveGeminiModel(),
     contents: prompt,
     config: {
       systemInstruction,

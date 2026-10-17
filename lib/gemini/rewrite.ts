@@ -1,4 +1,4 @@
-import { getGeminiClient, isOfflineOrMockMode } from './client';
+import { getGeminiClient, isOfflineOrMockMode, getActiveGeminiModel } from './client';
 import { ATS_REWRITE_SYSTEM_PROMPT, buildSanitizedRewritePrompt } from './prompts';
 import { geminiRewriteResponseSchema } from './rewrite-schema';
 import {
@@ -37,7 +37,7 @@ export async function generateRewrite(params: {
   const prompt = buildSanitizedRewritePrompt(params);
 
   const response = await ai.models.generateContent({
-    model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+    model: getActiveGeminiModel(),
     contents: prompt,
     config: {
       systemInstruction: ATS_REWRITE_SYSTEM_PROMPT,

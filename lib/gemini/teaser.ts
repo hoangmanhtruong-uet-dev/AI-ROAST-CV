@@ -1,5 +1,5 @@
 import { Type } from '@google/genai';
-import { getGeminiClient, isOfflineOrMockMode } from './client';
+import { getGeminiClient, isOfflineOrMockMode, getActiveGeminiModel } from './client';
 import { findPresetMatch } from '@/lib/data/teaser-presets';
 import { RoastTeaserResult, roastTeaserResultSchema } from '@/lib/schemas/roast-teaser';
 import { logger } from '@/lib/logger';
@@ -176,7 +176,7 @@ export async function generateRoastTeaser(sentence: string): Promise<GenerateTea
     const prompt = buildSanitizedTeaserPrompt(sentence);
 
     const generatePromise = ai.models.generateContent({
-      model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+      model: getActiveGeminiModel(),
       contents: prompt,
       config: {
         systemInstruction: TEASER_SYSTEM_PROMPT,

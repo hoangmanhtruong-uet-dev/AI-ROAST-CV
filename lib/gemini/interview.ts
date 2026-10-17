@@ -1,5 +1,5 @@
 import { Type } from '@google/genai';
-import { getGeminiClient, isOfflineOrMockMode } from './client';
+import { getGeminiClient, isOfflineOrMockMode, getActiveGeminiModel } from './client';
 import {
   INTERVIEW_EVALUATOR_SYSTEM_PROMPT,
   CUSTOM_JD_GENERATOR_SYSTEM_PROMPT,
@@ -230,7 +230,7 @@ export async function evaluateInterviewAnswer(
   });
 
   const response = await ai.models.generateContent({
-    model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+    model: getActiveGeminiModel(),
     contents: prompt,
     config: {
       systemInstruction: INTERVIEW_EVALUATOR_SYSTEM_PROMPT,
@@ -274,7 +274,7 @@ export async function generateCustomJdQuestions(
   const prompt = buildSanitizedCustomJdPrompt(params);
 
   const response = await ai.models.generateContent({
-    model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+    model: getActiveGeminiModel(),
     contents: prompt,
     config: {
       systemInstruction: CUSTOM_JD_GENERATOR_SYSTEM_PROMPT,
