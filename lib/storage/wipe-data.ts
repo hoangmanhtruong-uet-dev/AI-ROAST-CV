@@ -30,6 +30,7 @@ export const STORAGE_KEYS_TO_CLEAR = [
   'airoastcv_ats_rewrites',
   'airoastcv:is_pro',
   'airoastcv:license_key',
+  'airoastcv:tier',
   'ai_roast_cv_context',
   'airoastcv_custom_interview_questions',
 ] as const;

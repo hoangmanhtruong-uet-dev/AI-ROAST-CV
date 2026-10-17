@@ -396,7 +396,7 @@ export default function Navbar({
               aria-label="Mở khóa Gói Pro 29.000đ"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-              <span className="whitespace-nowrap">Gói Pro 29.000đ</span>
+              <span className="whitespace-nowrap">Gói Pro từ 29k</span>
             </button>
           </div>
         )}

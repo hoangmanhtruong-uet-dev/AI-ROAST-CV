@@ -1,4 +1,4 @@
-import { BankTransferInfo, PaymentOrder, SePayWebhookPayload } from './types';
+import { BankTransferInfo, PackageTier, PaymentOrder, SePayWebhookPayload } from './types';
 import { logger } from '@/lib/logger';
 
 // Default configuration for VietQR & SePay (can be overridden via environment variables)
@@ -6,7 +6,10 @@ const DEFAULT_BANK_ID = process.env.VIETQR_BANK_ID || 'MB';
 const DEFAULT_BANK_NAME = process.env.VIETQR_BANK_NAME || 'MBBank - Ngân hàng Quân Đội';
 const DEFAULT_ACCOUNT_NO = process.env.VIETQR_ACCOUNT_NO || '0988668899';
 const DEFAULT_ACCOUNT_NAME = process.env.VIETQR_ACCOUNT_NAME || 'AI ROAST CV TEAM';
-export const PRO_PACKAGE_PRICE = 29000;
+
+export const STARTER_PACKAGE_PRICE = 29000;
+export const MASTER_PACKAGE_PRICE = 99000;
+export const PRO_PACKAGE_PRICE = STARTER_PACKAGE_PRICE; // alias for backward compatibility
 export const ORDER_EXPIRY_MS = 15 * 60 * 1000; // 15 minutes
 
 // In-memory order and license storage
@@ -49,8 +52,8 @@ class PaymentStore {
     const normalized = key.toUpperCase().trim();
     if (this.validLicenseKeys.has(normalized)) return true;
 
-    // Format validation: PRO-XXXX-YYYY (where XXXX, YYYY are alphanumeric)
-    const regex = /^PRO-[A-Z0-9]{4,8}-[A-Z0-9]{4,8}$/i;
+    // Format validation: PRO-XXXX-YYYY, MASTER-XXXX-YYYY, or STARTER-XXXX-YYYY
+    const regex = /^(PRO|MASTER|STARTER)-[A-Z0-9]{4,8}-[A-Z0-9]{4,8}$/i;
     return regex.test(normalized);
   }
 
@@ -88,16 +91,26 @@ function generateId(length: number = 6): string {
 }
 
 /**
- * Generates a memorable Pro license key
+ * Generates a memorable license key for Starter or Pro Master
  */
-export function generateLicenseKey(): string {
+export function generateLicenseKey(tier: PackageTier = 'master'): string {
+  if (tier === 'starter') {
+    return `PRO-STRT-${generateId(4)}`;
+  }
   return `PRO-${generateId(4)}-${generateId(4)}`;
 }
 
 /**
  * Creates a new VietQR payment order
  */
-export function createPaymentOrder(customAmount: number = PRO_PACKAGE_PRICE): PaymentOrder {
+export function createPaymentOrder(customAmount?: number, tier?: PackageTier): PaymentOrder {
+  const resolvedTier: PackageTier =
+    tier || (customAmount && customAmount >= MASTER_PACKAGE_PRICE ? 'master' : 'starter');
+  let finalAmount = customAmount;
+  if (!finalAmount || typeof finalAmount !== 'number') {
+    finalAmount = resolvedTier === 'master' ? MASTER_PACKAGE_PRICE : STARTER_PACKAGE_PRICE;
+  }
+
   const orderId = `RCV${generateId(6)}`;
   const description = `${orderId}`;
   const now = Date.now();
@@ -108,29 +121,31 @@ export function createPaymentOrder(customAmount: number = PRO_PACKAGE_PRICE): Pa
     bankName: DEFAULT_BANK_NAME,
     accountNo: DEFAULT_ACCOUNT_NO,
     accountName: DEFAULT_ACCOUNT_NAME,
-    amount: customAmount,
+    amount: finalAmount,
     description: description,
-    qrUrl: `https://img.vietqr.io/image/${DEFAULT_BANK_ID}-${DEFAULT_ACCOUNT_NO}-compact2.png?amount=${customAmount}&addInfo=${encodeURIComponent(
+    qrUrl: `https://img.vietqr.io/image/${DEFAULT_BANK_ID}-${DEFAULT_ACCOUNT_NO}-compact2.png?amount=${finalAmount}&addInfo=${encodeURIComponent(
       description
     )}&accountName=${encodeURIComponent(DEFAULT_ACCOUNT_NAME)}`,
   };
 
   const order: PaymentOrder = {
     orderId,
-    amount: customAmount,
+    amount: finalAmount,
     description,
     status: 'PENDING',
     licenseKey: null,
     createdAt: now,
     expiresAt,
     bankInfo,
+    tier: resolvedTier,
   };
 
   getPaymentStore().setOrder(order);
 
   logger.info('Payment Order Created', {
     orderId,
-    amount: customAmount,
+    amount: finalAmount,
+    tier: resolvedTier,
     expiresAt,
   });
 
@@ -191,10 +206,12 @@ export function processSePayWebhook(
     return { success: false, message: `Transfer amount (${payload.transferAmount}) is less than order amount (${order.amount})` };
   }
 
-  // Mark as PAID and issue License Key
-  const licenseKey = generateLicenseKey();
+  // Mark as PAID and issue License Key with appropriate tier
+  const resolvedTier: PackageTier = order.tier || (payload.transferAmount >= MASTER_PACKAGE_PRICE ? 'master' : 'starter');
+  const licenseKey = generateLicenseKey(resolvedTier);
   order.status = 'PAID';
   order.licenseKey = licenseKey;
+  order.tier = resolvedTier;
   order.paidAt = Date.now();
   order.transactionReference = payload.referenceCode || String(payload.id);
 
@@ -203,6 +220,7 @@ export function processSePayWebhook(
   logger.info('Payment Succeeded via SePay Webhook', {
     orderId: order.orderId,
     amount: payload.transferAmount,
+    tier: resolvedTier,
     licenseKeyIssued: true,
   });
 
@@ -222,9 +240,11 @@ export function simulateSandboxPayment(orderId: string): { success: boolean; ord
     return { success: true, order };
   }
 
-  const licenseKey = generateLicenseKey();
+  const resolvedTier: PackageTier = order.tier || 'master';
+  const licenseKey = generateLicenseKey(resolvedTier);
   order.status = 'PAID';
   order.licenseKey = licenseKey;
+  order.tier = resolvedTier;
   order.paidAt = Date.now();
   order.transactionReference = `SANDBOX-TEST-${Date.now()}`;
 
@@ -232,6 +252,7 @@ export function simulateSandboxPayment(orderId: string): { success: boolean; ord
 
   logger.info('Sandbox Payment Simulated', {
     orderId: order.orderId,
+    tier: resolvedTier,
     licenseKey,
   });
 
@@ -249,12 +270,15 @@ export function activateLicenseKey(key: string): { success: boolean; message: st
 
   const isValid = getPaymentStore().isLicenseKeyValid(cleanKey);
   if (!isValid) {
-    return { success: false, message: 'Mã kích hoạt không hợp lệ hoặc đã hết hạn. Định dạng chuẩn: PRO-XXXX-YYYY' };
+    return { success: false, message: 'Mã kích hoạt không hợp lệ hoặc đã hết hạn. Định dạng chuẩn: PRO-XXXX-YYYY hoặc STARTER-XXXX-YYYY' };
   }
 
+  const isStarter = cleanKey.startsWith('STARTER-') || cleanKey.startsWith('PRO-STRT-');
   return {
     success: true,
-    message: 'Kích hoạt gói Pro thành công! Toàn bộ tính năng cao cấp đã được mở khóa.',
+    message: isStarter
+      ? 'Kích hoạt Gói Starter thành công! Bạn có thể sử dụng trọn vẹn 1 lần Roast CV và câu hỏi phỏng vấn áp lực đầu tiên.'
+      : 'Kích hoạt Gói Pro Master thành công! Toàn bộ tính năng cao cấp không giới hạn đã được mở khóa.',
     key: cleanKey,
   };
 }

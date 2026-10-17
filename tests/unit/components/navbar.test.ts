@@ -209,6 +209,9 @@ describe('Floating Pill Glassmorphism Navbar Component (Milestone 1)', () => {
     it('renders ProBadge instead of Pro CTA button when isPro is true', () => {
       vi.spyOn(entitlementModule, 'useProTier').mockReturnValue({
         isPro: true,
+        tier: 'master',
+        isMaster: true,
+        isStarter: false,
         licenseKey: 'PRO-TEST-KEY',
         isReady: true,
         activatePro: vi.fn(),

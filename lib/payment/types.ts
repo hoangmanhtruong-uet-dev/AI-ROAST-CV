@@ -1,4 +1,6 @@
 export type PaymentStatus = 'PENDING' | 'PAID' | 'EXPIRED' | 'CANCELLED';
+export type PackageTier = 'starter' | 'master';
+export type EntitlementTier = 'free' | 'starter' | 'master';
 
 export interface BankTransferInfo {
   bankId: string; // e.g. 'MB' | 'TCB' | 'VCB'
@@ -21,6 +23,7 @@ export interface PaymentOrder {
   paidAt?: number;
   transactionReference?: string;
   bankInfo: BankTransferInfo;
+  tier?: PackageTier;
 }
 
 export interface CreateOrderResponse {
