@@ -38,8 +38,8 @@ export function isOfflineOrMockMode(): boolean {
  */
 export function getActiveGeminiModel(): string {
   const model = (process.env.GEMINI_MODEL || '').trim();
-  if (!model || model === 'gemini-2.5-flash') {
-    return 'gemini-2.0-flash';
+  if (!model || model === 'gemini-2.5-flash' || model === 'gemini-2.0-flash') {
+    return 'gemini-3.8-flash';
   }
   return model;
 }

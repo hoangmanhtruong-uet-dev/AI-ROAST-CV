@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ATSRoastRequestSchema, ATSRoastResponse, ATSRoastResponseSchema } from '@/lib/schemas/ats-diff';
-import { getGeminiClient, isOfflineOrMockMode } from '@/lib/gemini/client';
+import { getGeminiClient, isOfflineOrMockMode, getActiveGeminiModel } from '@/lib/gemini/client';
 import { logger } from '@/lib/logger';
 
 export const runtime = 'edge';
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
     });
 
     const response = await client.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: getActiveGeminiModel(),
       contents: [
         { role: 'user', parts: [{ text: `${SYSTEM_PROMPT}\n\nDữ liệu đầu vào:\n${userPrompt}` }] },
       ],
