@@ -230,7 +230,7 @@ export async function evaluateInterviewAnswer(
   });
 
   const response = await ai.models.generateContent({
-    model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+    model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
     contents: prompt,
     config: {
       systemInstruction: INTERVIEW_EVALUATOR_SYSTEM_PROMPT,
@@ -274,7 +274,7 @@ export async function generateCustomJdQuestions(
   const prompt = buildSanitizedCustomJdPrompt(params);
 
   const response = await ai.models.generateContent({
-    model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+    model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
     contents: prompt,
     config: {
       systemInstruction: CUSTOM_JD_GENERATOR_SYSTEM_PROMPT,

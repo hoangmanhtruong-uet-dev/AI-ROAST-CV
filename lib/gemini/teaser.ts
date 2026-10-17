@@ -176,7 +176,7 @@ export async function generateRoastTeaser(sentence: string): Promise<GenerateTea
     const prompt = buildSanitizedTeaserPrompt(sentence);
 
     const generatePromise = ai.models.generateContent({
-      model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+      model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
       contents: prompt,
       config: {
         systemInstruction: TEASER_SYSTEM_PROMPT,

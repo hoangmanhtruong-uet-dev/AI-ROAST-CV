@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
     });
 
     const response = await client.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.0-flash',
       contents: [
         { role: 'user', parts: [{ text: `${SYSTEM_PROMPT}\n\nDữ liệu đầu vào:\n${userPrompt}` }] },
       ],
