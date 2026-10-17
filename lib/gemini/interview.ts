@@ -172,11 +172,11 @@ export const geminiCustomJdQuestionsSchema = {
         properties: {
           questionId: { type: Type.STRING },
           role: { type: Type.STRING, enum: ['custom'] },
-          questionIndex: { type: Type.INTEGER, enum: [1, 2, 3] },
+          questionIndex: { type: Type.INTEGER },
           title: { type: Type.STRING },
           scenario: { type: Type.STRING },
           pressureContext: { type: Type.STRING },
-          timeLimitSeconds: { type: Type.INTEGER, enum: [90, 75, 60] },
+          timeLimitSeconds: { type: Type.INTEGER },
         },
         required: [
           'questionId',
