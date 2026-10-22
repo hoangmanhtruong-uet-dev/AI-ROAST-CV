@@ -321,10 +321,28 @@ export default function Hero3DCanvas({
     window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('resize', handleResize);
 
-    // 7. Animation Loop
+    // 7. Animation Loop with IntersectionObserver throttling
+    let isIntersecting = true;
+    let observer: IntersectionObserver | null = null;
+    if (typeof IntersectionObserver !== 'undefined') {
+      observer = new IntersectionObserver(([entry]) => {
+        const wasIntersecting = isIntersecting;
+        isIntersecting = entry.isIntersecting;
+        if (isIntersecting && !wasIntersecting && sceneRef.current.animationId === null) {
+          sceneRef.current.animationId = requestAnimationFrame(animate);
+        }
+      });
+      observer.observe(container);
+    }
+
     const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
 
     const animate = () => {
+      if (!isIntersecting) {
+        sceneRef.current.animationId = null;
+        return;
+      }
+
       const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
       const elapsedTime = (now - startTime) * 0.001;
 
@@ -394,6 +412,9 @@ export default function Hero3DCanvas({
 
     // Cleanup on unmount
     return () => {
+      if (observer) {
+        observer.disconnect();
+      }
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleResize);

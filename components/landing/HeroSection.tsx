@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Flame, Timer, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import PersonaSwitcher, { PersonaMode } from '@/components/landing/PersonaSwitcher';
-import Hero3DCanvas from '@/components/landing/Hero3DCanvas';
+import CssHologramFallback from '@/components/landing/CssHologramFallback';
 import { soundEngine } from '@/lib/audio/sound-engine';
 import { cn } from '@/lib/utils/cn';
 
@@ -214,9 +214,9 @@ export default function HeroSection({ onOpenFakeDoor }: HeroSectionProps) {
         <PersonaSwitcher currentMode={currentMode} onModeChange={setCurrentMode} />
       </div>
 
-      {/* 3D WebGL Canvas with Fallback */}
+      {/* High-Performance 3D Hologram CV (Hardware-Accelerated CSS) */}
       <div id="hero-persona-view" className="mt-8 w-full flex justify-center">
-        <Hero3DCanvas mode={currentMode} />
+        <CssHologramFallback mode={currentMode} />
       </div>
 
       {/* Value Proposition Copy */}

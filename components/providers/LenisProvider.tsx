@@ -68,7 +68,7 @@ export function LenisProvider({
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
       instance = new Lenis({
-        duration: prefersReducedMotion ? 0.1 : 1.2,
+        duration: prefersReducedMotion ? 0.1 : 0.7,
         easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
         smoothWheel: !prefersReducedMotion,
         syncTouch: false,
