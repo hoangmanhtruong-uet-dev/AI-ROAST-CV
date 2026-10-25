@@ -91,7 +91,7 @@ export async function POST(req: Request): Promise<NextResponse<RoastApiResponse>
       return NextResponse.json(
         {
           success: false,
-          error: `Lỗi phân tích AI: ${detail}`,
+          error: `Hệ thống AI phản hồi không hợp lệ: ${detail}`,
         },
         { status: 502 }
       );

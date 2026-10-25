@@ -43,6 +43,7 @@ export interface RoastReportProps {
   onEditCv: () => void;
   onShareCard?: () => void;
   onStartInterview?: () => void;
+  onGoToAtsDiff?: () => void;
   className?: string;
 }
 
@@ -55,6 +56,7 @@ export function RoastReport({
   onEditCv,
   onShareCard,
   onStartInterview,
+  onGoToAtsDiff,
   className,
 }: RoastReportProps) {
   const router = useRouter();
@@ -163,6 +165,34 @@ export function RoastReport({
       router.push('/interview');
     } else if (typeof window !== 'undefined') {
       window.location.href = '/interview';
+    }
+  };
+
+  const handleGoToAtsDiff = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem(
+          'airoastcv_diff_context',
+          JSON.stringify({
+            cvText: cvText || '',
+            targetRole: (data as any).targetRole || targetRole || '',
+            jdText: (data as any).jdMatch?.targetJdText || '',
+            weaknesses: data.weaknesses || [],
+          })
+        );
+      } catch {
+        // Safe storage fallback
+      }
+    }
+
+    if (onGoToAtsDiff) {
+      onGoToAtsDiff();
+    }
+
+    if (router?.push) {
+      router.push('/ats-diff');
+    } else if (typeof window !== 'undefined') {
+      window.location.href = '/ats-diff';
     }
   };
 
@@ -441,6 +471,31 @@ export function RoastReport({
           className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-bold bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white shadow-lg shadow-orange-500/20 transition-all shrink-0 cursor-pointer"
         >
           <span>⏱️ Luyện phỏng vấn từ chính CV này</span>
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* 1.6. CV Bridge to /ats-diff (ATS Simulator & JD Matcher) */}
+      <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-amber-950/40 via-orange-950/30 to-zinc-900 border border-amber-500/40 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-400">
+            <ShieldCheck className="w-4 h-4" />
+            <span>Cầu nối cứu nguy hồ sơ xin việc (ATS Simulator)</span>
+          </div>
+          <h3 className="text-base sm:text-lg font-bold text-white">
+            Cười xong rồi? Đừng để CV bị HR & ATS gạt bỏ sau 6 giây!
+          </h3>
+          <p className="text-xs text-zinc-300">
+            Đối chiếu trực tiếp CV của bạn với Job Description mục tiêu, vạch trần từ khóa còn thiếu và phê duyệt từng câu sửa chuẩn Google XYZ trên giao diện Diff trực quan.
+          </p>
+        </div>
+        <button
+          type="button"
+          data-testid="hero-go-to-ats-diff-btn"
+          onClick={handleGoToAtsDiff}
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-zinc-950 shadow-lg shadow-amber-500/20 transition-all shrink-0 cursor-pointer"
+        >
+          <span>🎯 Quét chuẩn ATS & Sửa câu ngay</span>
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>
@@ -828,6 +883,16 @@ export function RoastReport({
           >
             <Sparkles className="w-4 h-4 text-orange-400" />
             <span>Tạo ảnh chia sẻ</span>
+          </button>
+
+          <button
+            type="button"
+            data-testid="toolbar-go-to-ats-diff-btn"
+            onClick={handleGoToAtsDiff}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-amber-500/20 to-emerald-500/20 hover:from-amber-500/30 hover:to-emerald-500/30 text-amber-300 transition-colors border border-amber-500/30 cursor-pointer"
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>🎯 Quét chuẩn ATS & Sửa câu</span>
           </button>
 
           <button

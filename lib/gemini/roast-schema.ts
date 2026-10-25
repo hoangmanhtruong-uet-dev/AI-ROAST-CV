@@ -131,7 +131,7 @@ export const geminiRoastResponseSchema = {
           title: { type: Type.STRING, description: 'Tiêu đề ngắn gọn cho tình huống áp lực' },
           scenario: { type: Type.STRING, description: 'Tình huống phỏng vấn áp lực bắt nguồn trực tiếp từ công nghệ, dự án trong CV hoặc khoảng cách kỹ năng giữa CV và JD' },
           pressureContext: { type: Type.STRING, description: 'Bối cảnh dồn ép nghẹt thở từ sếp, khách hàng hoặc deadline' },
-          timeLimitSeconds: { type: Type.INTEGER, description: 'Thời gian đếm ngược: 90s cho Q1, 75s cho Q2, 60s cho Q3' },
+          timeLimitSeconds: { type: Type.INTEGER, enum: [90, 75, 60], description: 'Thời gian đếm ngược: 90s cho Q1, 75s cho Q2, 60s cho Q3' },
         },
         required: ['questionId', 'role', 'questionIndex', 'title', 'scenario', 'pressureContext', 'timeLimitSeconds'],
       },

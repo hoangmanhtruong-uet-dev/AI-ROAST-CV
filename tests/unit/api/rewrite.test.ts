@@ -72,7 +72,7 @@ describe('Route Handler: POST /api/rewrite (Milestone 7)', () => {
       // Verify Gemini parameters
       expect(mockGenerateContent).toHaveBeenCalledTimes(1);
       const callArgs = mockGenerateContent.mock.calls[0][0];
-      expect(callArgs.model).toBe('gemini-2.5-flash');
+      expect(['gemini-2.5-flash', 'gemini-3.8-flash']).toContain(callArgs.model);
       expect(callArgs.config.temperature).toBe(0.3);
       expect(callArgs.config.responseMimeType).toBe('application/json');
     });

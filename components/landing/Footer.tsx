@@ -42,6 +42,11 @@ export default function Footer({ onOpenFakeDoor }: FooterProps) {
                 </Link>
               </li>
               <li>
+                <Link href="/ats-diff" className="hover:text-white transition-colors">
+                  ATS Simulator &amp; CV Diff
+                </Link>
+              </li>
+              <li>
                 <Link href="/interview" className="hover:text-white transition-colors">
                   Phỏng vấn áp lực 3 câu
                 </Link>

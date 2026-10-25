@@ -24,7 +24,7 @@ export default function ATSDiffPage() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 mb-3">
               <Sparkles className="w-3.5 h-3.5" />
-              Thiết kế bởi Core Architect (Gemini 4 Argon)
+              Công thức Google XYZ &amp; Chuẩn hóa ATS
             </div>
             <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
               ATS Simulator & Interactive CV Diff
